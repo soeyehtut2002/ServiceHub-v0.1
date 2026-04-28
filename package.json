@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "ServiceHub monorepo root",
   "scripts": {
-    "start": "node backend/server.js"
+    "start": "node backend/server.js",
     "setup-db": "node setup-db.js",
     "backend": "cd backend && npm run dev",
     "frontend": "cd frontend && npm run dev"
