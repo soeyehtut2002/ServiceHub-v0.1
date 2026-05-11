@@ -151,7 +151,51 @@ const adminDeleteService = async (req, res) => {
   }
 };
 
+
+// ─── @route  GET /api/admin/reviews ──────────────────────────────────────────
+const getAllReviews = async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT
+         r.*,
+         u.name  AS customer_name,
+         u.email AS customer_email,
+         s.title AS service_title,
+         s.id    AS service_id
+       FROM reviews r
+       JOIN users    u ON r.customer_id = u.id
+       JOIN services s ON r.service_id  = s.id
+       ORDER BY r.is_flagged DESC, r.created_at DESC`
+    );
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('getAllReviews error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// ─── @route  PATCH /api/admin/reviews/:id/flag ────────────────────────────────
+const flagReview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { flag_reason } = req.body;
+    const check = await db.query('SELECT id, is_flagged FROM reviews WHERE id = $1', [id]);
+    if (check.rows.length === 0) return res.status(404).json({ error: 'Review not found' });
+    const newFlagged = !check.rows[0].is_flagged;
+    const result = await db.query(
+      `UPDATE reviews SET is_flagged = $1, flag_reason = $2 WHERE id = $3
+       RETURNING id, is_flagged, flag_reason`,
+      [newFlagged, flag_reason || null, id]
+    );
+    res.status(200).json(result.rows[0]);
+  } catch (error) {
+    console.error('flagReview error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 // ─── @route  DELETE /api/admin/reviews/:id ───────────────────────────────────
+
 const adminDeleteReview = async (req, res) => {
   try {
     const { id } = req.params;
@@ -159,6 +203,38 @@ const adminDeleteReview = async (req, res) => {
     res.status(200).json({ message: 'Review deleted by admin' });
   } catch (error) {
     console.error('adminDeleteReview error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// ─── @route  GET /api/admin/cancellations ───────────────────────────────────────────
+const getCancellations = async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT
+         b.id,
+         b.cancelled_by,
+         b.cancellation_reason,
+         b.cancelled_at,
+         b.booking_date,
+         b.notes,
+         b.location,
+         s.title AS service_title,
+         s.price,
+         cu.name  AS customer_name,
+         cu.email AS customer_email,
+         pu.name  AS provider_name,
+         pu.email AS provider_email
+       FROM bookings b
+       JOIN services s  ON b.service_id  = s.id
+       JOIN users    cu ON b.customer_id = cu.id
+       JOIN users    pu ON s.provider_id = pu.id
+       WHERE b.status = 'cancelled'
+       ORDER BY COALESCE(b.cancelled_at, b.updated_at) DESC`
+    );
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('getCancellations error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -171,5 +247,9 @@ module.exports = {
   getAllServices,
   getAllBookings,
   adminDeleteService,
+  getAllReviews,
+  flagReview,
   adminDeleteReview,
+  getCancellations,
 };
+

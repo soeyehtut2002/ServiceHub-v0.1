@@ -1,8 +1,9 @@
 const STATUS_CONFIG = {
-  pending:   { label: 'Pending',   className: 'badge-warning', icon: '⏳' },
-  confirmed: { label: 'Confirmed', className: 'badge-primary', icon: '✅' },
-  completed: { label: 'Completed', className: 'badge-success', icon: '🎉' },
-  cancelled: { label: 'Cancelled', className: 'badge-danger',  icon: '❌' },
+  pending:    { label: 'Pending',    className: 'badge-warning', icon: '⏳' },
+  confirmed:  { label: 'Confirmed',  className: 'badge-primary', icon: '✅' },
+  completed:  { label: 'Completed',  className: 'badge-success', icon: '🎉' },
+  cancelled:  { label: 'Cancelled',  className: 'badge-danger',  icon: '❌' },
+  paused:     { label: 'Paused',     className: 'badge-muted',   icon: '⏸️' },
 };
 
 const StatusBadge = ({ status }) => {

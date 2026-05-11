@@ -8,16 +8,19 @@ import toast from 'react-hot-toast';
 
 const CustomerDashboard = () => {
   const { user } = useAuth();
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('all');
+  const [bookings,      setBookings]      = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [tab,           setTab]           = useState('all');
   const [reviewBooking, setReviewBooking] = useState(null);
+  const [editReview,    setEditReview]    = useState(null); // existing review for edit
+  const [cancelModal,   setCancelModal]   = useState(null);
+  const [cancelReason,  setCancelReason]  = useState('');
 
   const fetchBookings = async () => {
     try {
       const res = await API.get('/bookings/my');
       setBookings(res.data);
-    } catch (err) {
+    } catch {
       toast.error('Failed to load bookings');
     } finally {
       setLoading(false);
@@ -26,19 +29,40 @@ const CustomerDashboard = () => {
 
   useEffect(() => { fetchBookings(); }, []);
 
-  const handleCancel = async (id) => {
-    if (!confirm('Cancel this booking?')) return;
+  const handleCancel = async () => {
+    if (!cancelModal) return;
     try {
-      await API.patch(`/bookings/${id}/cancel`);
+      await API.patch(`/bookings/${cancelModal.id}/cancel`, { reason: cancelReason });
       toast.success('Booking cancelled');
+      setCancelModal(null);
+      setCancelReason('');
       fetchBookings();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to cancel');
     }
   };
 
+  // Load existing review for a booking (so user can edit)
+  const openReview = async (booking) => {
+    try {
+      const res = await API.get(`/reviews/service/${booking.service_id}`);
+      const myReview = res.data.reviews.find(r => r.customer_id === user.id);
+      setEditReview(myReview || null);
+      setReviewBooking(booking);
+    } catch {
+      setReviewBooking(booking);
+    }
+  };
+
   const filtered = tab === 'all' ? bookings : bookings.filter(b => b.status === tab);
-  const counts = { pending: bookings.filter(b=>b.status==='pending').length, confirmed: bookings.filter(b=>b.status==='confirmed').length, completed: bookings.filter(b=>b.status==='completed').length };
+  const counts = {
+    pending:   bookings.filter(b => b.status === 'pending').length,
+    confirmed: bookings.filter(b => b.status === 'confirmed').length,
+    completed: bookings.filter(b => b.status === 'completed').length,
+    paused:    bookings.filter(b => b.status === 'paused').length,
+  };
+
+  const canCancel = (status) => ['pending', 'confirmed', 'paused'].includes(status);
 
   return (
     <div className="page-wrapper">
@@ -49,7 +73,10 @@ const CustomerDashboard = () => {
               <h1 className="h2">👋 My Dashboard</h1>
               <p className="text-muted mt-2">Welcome back, {user?.name}</p>
             </div>
-            <Link to="/services" className="btn btn-primary">Browse Services</Link>
+            <div style={{display:'flex',gap:'var(--space-3)'}}>
+              <Link to="/profile" className="btn btn-ghost">👤 My Profile</Link>
+              <Link to="/services" className="btn btn-primary">Browse Services</Link>
+            </div>
           </div>
         </div>
       </div>
@@ -58,10 +85,10 @@ const CustomerDashboard = () => {
         {/* Stats */}
         <div className="grid-4 grid mb-8">
           {[
-            { label:'Total Bookings', value:bookings.length, icon:'📅', color:'#6C63FF' },
-            { label:'Pending', value:counts.pending, icon:'⏳', color:'#FFBE0B' },
-            { label:'Confirmed', value:counts.confirmed, icon:'✅', color:'#6C63FF' },
-            { label:'Completed', value:counts.completed, icon:'🎉', color:'#00D4AA' },
+            { label:'Total Bookings', value:bookings.length,  icon:'📅', color:'#6C63FF' },
+            { label:'Pending',        value:counts.pending,   icon:'⏳', color:'#FFBE0B' },
+            { label:'Confirmed',      value:counts.confirmed, icon:'✅', color:'#6C63FF' },
+            { label:'Completed',      value:counts.completed, icon:'🎉', color:'#00D4AA' },
           ].map(s => (
             <div key={s.label} className="stat-card">
               <div className="stat-icon" style={{background:`${s.color}22`}}>{s.icon}</div>
@@ -72,9 +99,12 @@ const CustomerDashboard = () => {
 
         {/* Tabs */}
         <div className="tabs mb-6">
-          {['all','pending','confirmed','completed','cancelled'].map(t => (
+          {['all','pending','confirmed','paused','completed','cancelled'].map(t => (
             <button key={t} className={`tab-btn ${tab===t?'active':''}`} onClick={() => setTab(t)}>
               {t.charAt(0).toUpperCase()+t.slice(1)}
+              {t === 'paused' && counts.paused > 0 && (
+                <span style={{marginLeft:4,background:'#FF9800',color:'#000',borderRadius:'10px',fontSize:'.7rem',padding:'1px 6px'}}>{counts.paused}</span>
+              )}
             </button>
           ))}
         </div>
@@ -91,7 +121,7 @@ const CustomerDashboard = () => {
         ) : (
           <div className="table-wrapper">
             <table className="table">
-              <thead><tr><th>Service</th><th>Provider</th><th>Date</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Service</th><th>Provider</th><th>Date / Slot</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
                 {filtered.map(b => (
                   <tr key={b.id}>
@@ -100,14 +130,29 @@ const CustomerDashboard = () => {
                       <div style={{fontSize:'.75rem',color:'var(--text-muted)'}}>{b.category}</div>
                     </td>
                     <td>{b.provider_name}</td>
-                    <td>{new Date(b.booking_date).toLocaleString()}</td>
+                    <td>
+                      {b.slot_date ? (
+                        <div>
+                          <div style={{fontWeight:600}}>{new Date(b.slot_date+'T00:00:00').toLocaleDateString()}</div>
+                          <div style={{fontSize:'.75rem',color:'var(--text-muted)'}}>{b.start_time?.slice(0,5)} – {b.end_time?.slice(0,5)}</div>
+                        </div>
+                      ) : (
+                        new Date(b.booking_date).toLocaleString()
+                      )}
+                    </td>
                     <td style={{color:'var(--success)',fontWeight:700}}>${parseFloat(b.price).toFixed(2)}</td>
                     <td><StatusBadge status={b.status}/></td>
                     <td>
                       <div style={{display:'flex',gap:'var(--space-2)',flexWrap:'wrap'}}>
                         <Link to={`/services/${b.service_id}`} className="btn btn-ghost btn-sm">View</Link>
-                        {b.status === 'pending' && <button className="btn btn-danger btn-sm" onClick={() => handleCancel(b.id)}>Cancel</button>}
-                        {b.status === 'completed' && <button className="btn btn-outline btn-sm" onClick={() => setReviewBooking(b)}>Review</button>}
+                        {canCancel(b.status) && (
+                          <button className="btn btn-danger btn-sm" onClick={() => setCancelModal(b)}>Cancel</button>
+                        )}
+                        {b.status === 'completed' && (
+                          <button className="btn btn-outline btn-sm" onClick={() => openReview(b)}>
+                            {editReview ? 'Edit Review' : 'Review'}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -117,15 +162,54 @@ const CustomerDashboard = () => {
           </div>
         )}
 
-        {/* Review Modal */}
+        {/* ── Cancel Reason Modal ─────────────────────────────────────────── */}
+        {cancelModal && (
+          <div className="modal-overlay" onClick={e => e.target===e.currentTarget && setCancelModal(null)}>
+            <div className="modal-content" style={{maxWidth:400}}>
+              <div className="modal-header">
+                <h3 className="modal-title">Cancel Booking</h3>
+                <button className="modal-close" onClick={() => setCancelModal(null)}>✕</button>
+              </div>
+              <p style={{color:'var(--text-secondary)',marginBottom:'var(--space-4)'}}>
+                Are you sure you want to cancel <strong>{cancelModal.service_title}</strong>?
+              </p>
+              <div className="form-group">
+                <label className="form-label">Reason (optional)</label>
+                <textarea
+                  className="textarea" rows={2}
+                  placeholder="Let the provider know why you're cancelling..."
+                  value={cancelReason}
+                  onChange={e => setCancelReason(e.target.value)}
+                />
+              </div>
+              <div style={{display:'flex',gap:'var(--space-3)',justifyContent:'flex-end',marginTop:'var(--space-4)'}}>
+                <button className="btn btn-ghost" onClick={() => setCancelModal(null)}>Keep Booking</button>
+                <button className="btn btn-danger" onClick={handleCancel}>Yes, Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Review Modal ────────────────────────────────────────────────── */}
         {reviewBooking && (
-          <div className="modal-overlay" onClick={(e) => e.target===e.currentTarget && setReviewBooking(null)}>
+          <div className="modal-overlay" onClick={e => e.target===e.currentTarget && setReviewBooking(null)}>
             <div className="modal-content">
               <div className="modal-header">
-                <h3 className="modal-title">Review: {reviewBooking.service_title}</h3>
+                <h3 className="modal-title">
+                  {editReview ? '✏️ Edit Review' : '⭐ Review'}: {reviewBooking.service_title}
+                </h3>
                 <button className="modal-close" onClick={() => setReviewBooking(null)}>✕</button>
               </div>
-              <ReviewForm serviceId={reviewBooking.service_id} bookingId={reviewBooking.id} onReviewSubmitted={() => { setReviewBooking(null); toast.success('Review submitted!'); }} />
+              <ReviewForm
+                serviceId={reviewBooking.service_id}
+                bookingId={reviewBooking.id}
+                existingReview={editReview}
+                onReviewSubmitted={() => {
+                  setReviewBooking(null);
+                  setEditReview(null);
+                  toast.success(editReview ? 'Review updated!' : 'Review submitted!');
+                }}
+              />
             </div>
           </div>
         )}

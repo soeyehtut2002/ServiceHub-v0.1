@@ -80,14 +80,25 @@ const ServiceDetail = () => {
               <p style={{color:'var(--text-secondary)',lineHeight:1.8}}>{service.description}</p>
               <div className="divider"/>
               <div className="detail-info-grid">
-                <div className="detail-info-item"><span className="detail-info-icon">💰</span><div><p className="detail-info-label">Price</p><p className="detail-info-value" style={{color:'var(--success)'}}>${parseFloat(service.price).toFixed(2)}</p></div></div>
+                <div className="detail-info-item"><span className="detail-info-icon">💰</span><div><p className="detail-info-label">Price</p><p className="detail-info-value" style={{color:'var(--success)'}}>
+                  ${parseFloat(service.price).toFixed(2)}</p></div></div>
                 <div className="detail-info-item"><span className="detail-info-icon">📍</span><div><p className="detail-info-label">Location</p><p className="detail-info-value">{service.location}</p></div></div>
                 <div className="detail-info-item"><span className="detail-info-icon">🏷️</span><div><p className="detail-info-label">Category</p><p className="detail-info-value">{service.category}</p></div></div>
+                <div className="detail-info-item"><span className="detail-info-icon">⏱️</span><div><p className="detail-info-label">Duration</p><p className="detail-info-value">{service.duration_hours || 1} hour{(service.duration_hours||1)>1?'s':''} per job</p></div></div>
+                {(service.team_count || 1) > 1 && (
+                  <div className="detail-info-item"><span className="detail-info-icon">👥</span><div><p className="detail-info-label">Capacity</p><p className="detail-info-value">{service.team_count} teams — up to {service.team_count} bookings per slot</p></div></div>
+                )}
               </div>
             </div>
           ) : (
             <div style={{display:'flex',flexDirection:'column',gap:'var(--space-4)'}}>
-              {user?.role === 'customer' && <ReviewForm serviceId={service.id} onReviewSubmitted={fetchService} />}
+              {user?.role === 'customer' && (
+                <ReviewForm
+                  serviceId={service.id}
+                  existingReview={reviews.find(r => r.customer_id === user.id)}
+                  onReviewSubmitted={fetchService}
+                />
+              )}
               {reviews.length === 0 ? (
                 <div className="empty-state"><div className="empty-icon">💬</div><p>No reviews yet. Be the first!</p></div>
               ) : reviews.map((r) => (
@@ -101,6 +112,20 @@ const ServiceDetail = () => {
                     <div style={{marginLeft:'auto'}}><StarRating rating={r.rating} readonly size="sm" /></div>
                   </div>
                   {r.comment && <p className="review-comment">{r.comment}</p>}
+                  {/* Review images */}
+                  {r.image_urls && r.image_urls.length > 0 && (
+                    <div className="review-images">
+                      {r.image_urls.map((url, i) => (
+                        <a key={i} href={url.startsWith('/uploads') ? `http://localhost:5000${url}` : url} target="_blank" rel="noreferrer">
+                          <img
+                            src={url.startsWith('/uploads') ? `http://localhost:5000${url}` : url}
+                            alt={`Review photo ${i+1}`}
+                            className="review-img-thumb-view"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -125,7 +150,16 @@ const ServiceDetail = () => {
             {!user ? (
               <Link to="/login" className="btn btn-primary w-full btn-lg" state={{ from: { pathname: `/services/${id}` } }}>🔐 Login to Book</Link>
             ) : user.role === 'customer' ? (
-              <button className="btn btn-primary w-full btn-lg" onClick={() => setShowBooking(true)}>📅 Book Now</button>
+              <>
+                <button className="btn btn-primary w-full btn-lg" onClick={() => setShowBooking(true)}>📅 Book Now</button>
+                <Link
+                  to={`/chat/${service.provider_id}`}
+                  className="btn btn-outline w-full"
+                  style={{marginTop:'var(--space-2)',textAlign:'center'}}
+                >
+                  💬 Message Provider
+                </Link>
+              </>
             ) : (
               <div className="alert alert-info" style={{textAlign:'center'}}>Only customers can book services</div>
             )}
@@ -165,6 +199,9 @@ const ServiceDetail = () => {
         .review-author { font-weight:700; font-size:.9rem; }
         .review-date { font-size:.75rem; color:var(--text-muted); }
         .review-comment { font-size:.875rem; color:var(--text-secondary); line-height:1.6; }
+        .review-images { display:flex; flex-wrap:wrap; gap:var(--space-2); margin-top:var(--space-3); }
+        .review-img-thumb-view { width:72px; height:72px; object-fit:cover; border-radius:var(--radius-md); border:1px solid var(--border); cursor:pointer; transition:var(--transition); }
+        .review-img-thumb-view:hover { transform:scale(1.05); border-color:var(--primary); }
         @media(max-width:900px){ .detail-layout{grid-template-columns:1fr;} .booking-card{position:static;} }
       `}</style>
     </div>

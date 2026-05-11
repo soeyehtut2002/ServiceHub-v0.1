@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import API from '../api/axios';
 import StatusBadge from '../components/StatusBadge';
 import toast from 'react-hot-toast';
+import { formatAllCurrencies } from '../utils/currency';
 
 const AdminDashboard = () => {
   const [tab, setTab] = useState('overview');
@@ -9,94 +11,87 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [services, setServices] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [categoryFilter, setCategoryFilter] = useState('');
 
-  const fetchStats = async () => {
-    try {
-      const res = await API.get('/admin/stats');
-      setStats(res.data);
-    } catch (err) { toast.error('Failed to load stats'); }
-  };
+  const fetchStats    = async () => { try { const r = await API.get('/admin/stats');    setStats(r.data);    } catch { toast.error('Failed to load stats'); } };
+  const fetchUsers    = async () => { try { const r = await API.get('/admin/users');    setUsers(r.data);    } catch { toast.error('Failed to load users'); } };
+  const fetchServices = async () => { try { const r = await API.get('/admin/services'); setServices(r.data); } catch { toast.error('Failed to load services'); } };
+  const fetchBookings = async () => { try { const r = await API.get('/admin/bookings'); setBookings(r.data); } catch { toast.error('Failed to load bookings'); } };
+  const fetchReviews  = async () => { try { const r = await API.get('/admin/reviews');  setReviews(r.data);  } catch { toast.error('Failed to load reviews'); } };
 
-  const fetchUsers = async () => {
-    try {
-      const res = await API.get('/admin/users');
-      setUsers(res.data);
-    } catch (err) { toast.error('Failed to load users'); }
-  };
-
-  const fetchServices = async () => {
-    try {
-      const res = await API.get('/admin/services');
-      setServices(res.data);
-    } catch (err) { toast.error('Failed to load services'); }
-  };
-
-  const fetchBookings = async () => {
-    try {
-      const res = await API.get('/admin/bookings');
-      setBookings(res.data);
-    } catch (err) { toast.error('Failed to load bookings'); }
-  };
-
+  useEffect(() => { const load = async () => { setLoading(true); await fetchStats(); setLoading(false); }; load(); }, []);
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      await fetchStats();
-      setLoading(false);
-    };
-    load();
-  }, []);
-
-  useEffect(() => {
-    if (tab === 'users') fetchUsers();
+    if (tab === 'users')    fetchUsers();
     if (tab === 'services') fetchServices();
     if (tab === 'bookings') fetchBookings();
+    if (tab === 'reviews')  fetchReviews();
   }, [tab]);
 
   const handleToggleUser = async (id) => {
-    try {
-      await API.patch(`/admin/users/${id}/status`);
-      toast.success('User status updated');
-      fetchUsers();
-    } catch (err) { toast.error('Failed to update user'); }
+    try { await API.patch(`/admin/users/${id}/status`); toast.success('User status updated'); fetchUsers(); }
+    catch { toast.error('Failed to update user'); }
   };
-
   const handleDeleteUser = async (id) => {
     if (!confirm('Permanently delete this user?')) return;
-    try {
-      await API.delete(`/admin/users/${id}`);
-      toast.success('User deleted');
-      fetchUsers();
-    } catch (err) { toast.error('Failed to delete user'); }
+    try { await API.delete(`/admin/users/${id}`); toast.success('User deleted'); fetchUsers(); }
+    catch { toast.error('Failed to delete user'); }
   };
-
   const handleDeleteService = async (id) => {
     if (!confirm('Delete this service?')) return;
+    try { await API.delete(`/admin/services/${id}`); toast.success('Service deleted'); fetchServices(); }
+    catch { toast.error('Failed to delete service'); }
+  };
+  const handleDeleteReview = async (id) => {
+    if (!confirm('Delete this review?')) return;
+    try { await API.delete(`/admin/reviews/${id}`); toast.success('Review deleted'); fetchReviews(); }
+    catch { toast.error('Failed to delete review'); }
+  };
+  const handleFlagReview = async (id) => {
     try {
-      await API.delete(`/admin/services/${id}`);
-      toast.success('Service deleted');
-      fetchServices();
-    } catch (err) { toast.error('Failed to delete service'); }
+      const r = await API.patch(`/admin/reviews/${id}/flag`);
+      toast.success(r.data.is_flagged ? 'Review flagged' : 'Flag removed');
+      fetchReviews();
+    } catch { toast.error('Failed to flag review'); }
+  };
+  const handleAdminCancel = async (id) => {
+    const reason = prompt('Reason for cancellation (optional):');
+    if (reason === null) return; // user pressed Cancel in prompt
+    try {
+      await API.patch(`/bookings/${id}/admin-cancel`, { reason: reason || 'Cancelled by administrator' });
+      toast.success('Booking cancelled by admin');
+      fetchBookings();
+    } catch (err) { toast.error(err.response?.data?.error || 'Failed to cancel booking'); }
   };
 
-  const ROLE_COLORS = { admin: '#6C63FF', provider: '#00D4AA', customer: '#FFBE0B' };
+  const ROLE_COLORS = { admin: '#00FFFF', provider: '#00D4AA', customer: '#FFBE0B' };
+  const categories = [...new Set(services.map(s => s.category))].sort();
+  const filteredServices = categoryFilter ? services.filter(s => s.category === categoryFilter) : services;
+
+  const TABS = [
+    { key: 'overview', label: '📊 Overview' },
+    { key: 'users',    label: '👥 Users' },
+    { key: 'services', label: '🛠️ Services' },
+    { key: 'bookings', label: '📅 Bookings' },
+    { key: 'reviews',  label: '⭐ Reviews' },
+  ];
 
   return (
     <div className="page-wrapper">
       <div className="page-header">
         <div className="container">
           <h1 className="h2">👑 Admin Dashboard</h1>
-          <p className="text-muted mt-2">Platform management & analytics</p>
+          <p className="text-muted mt-2">Platform management &amp; analytics</p>
         </div>
       </div>
 
       <div className="container section-sm">
         {/* Tabs */}
-        <div className="tabs mb-8" style={{ maxWidth: 600 }}>
-          {['overview','users','services','bookings'].map(t => (
-            <button key={t} className={`tab-btn ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>
-              {t === 'overview' ? '📊' : t === 'users' ? '👥' : t === 'services' ? '🛠️' : '📅'} {t.charAt(0).toUpperCase() + t.slice(1)}
+        <div className="tabs mb-8" style={{ maxWidth: 680 }}>
+          {TABS.map(t => (
+            <button key={t.key} className={`tab-btn ${tab === t.key ? 'active' : ''}`} onClick={() => setTab(t.key)}>
+              {t.label}
             </button>
           ))}
         </div>
@@ -105,19 +100,19 @@ const AdminDashboard = () => {
           <div className="spinner-container"><div className="spinner" /></div>
         ) : (
           <>
-            {/* ─── Overview ─────────────────────────────────── */}
+            {/* ── Overview ─────────────────────────────────────── */}
             {tab === 'overview' && stats && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
                 <div className="grid-4 grid">
                   {[
-                    { label: 'Total Users', value: stats.totals.users, icon: '👥', color: '#6C63FF' },
+                    { label: 'Total Users',     value: stats.totals.users,    icon: '👥', color: '#00FFFF' },
                     { label: 'Active Services', value: stats.totals.services, icon: '🛠️', color: '#00D4AA' },
-                    { label: 'Total Bookings', value: stats.totals.bookings, icon: '📅', color: '#FF6584' },
-                    { label: 'Total Reviews', value: stats.totals.reviews, icon: '⭐', color: '#FFBE0B' },
+                    { label: 'Total Bookings',  value: stats.totals.bookings, icon: '📅', color: '#0080FF' },
+                    { label: 'Total Reviews',   value: stats.totals.reviews,  icon: '⭐', color: '#FFBE0B' },
                   ].map(s => (
-                    <div key={s.label} className="stat-card">
-                      <div className="stat-icon" style={{ background: `${s.color}22` }}>{s.icon}</div>
-                      <div><div className="stat-value">{s.value}</div><div className="stat-label">{s.label}</div></div>
+                    <div key={s.label} className="stat-card aqua-glow" style={{ borderColor: `${s.color}30` }}>
+                      <div className="stat-icon" style={{ background: `${s.color}18` }}>{s.icon}</div>
+                      <div><div className="stat-value" style={{ color: s.color }}>{s.value}</div><div className="stat-label">{s.label}</div></div>
                     </div>
                   ))}
                 </div>
@@ -125,19 +120,19 @@ const AdminDashboard = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-6)' }}>
                   {/* Bookings by Status */}
                   <div className="card" style={{ padding: 'var(--space-6)' }}>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 'var(--space-5)' }}>📊 Bookings by Status</h3>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-5)', color: 'var(--primary)' }}>📊 Bookings by Status</h3>
                     {stats.bookingsByStatus.map(s => {
                       const total = stats.totals.bookings || 1;
                       const pct = Math.round((parseInt(s.count) / total) * 100);
-                      const colors = { pending: '#FFBE0B', confirmed: '#6C63FF', completed: '#00D4AA', cancelled: '#FF4757' };
+                      const colors = { pending: '#FFBE0B', confirmed: '#00FFFF', completed: '#00D4AA', cancelled: '#FF4757' };
                       return (
                         <div key={s.status} style={{ marginBottom: 'var(--space-4)' }}>
                           <div className="flex-between mb-2">
                             <span style={{ fontSize: '.85rem', fontWeight: 600, textTransform: 'capitalize' }}>{s.status}</span>
                             <span style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>{s.count} ({pct}%)</span>
                           </div>
-                          <div style={{ height: 8, background: 'rgba(255,255,255,.07)', borderRadius: 4, overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${pct}%`, background: colors[s.status] || '#6C63FF', borderRadius: 4, transition: 'width .5s ease' }} />
+                          <div style={{ height: 6, background: 'rgba(0,255,255,0.08)', borderRadius: 4, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${pct}%`, background: colors[s.status] || '#00FFFF', borderRadius: 4, transition: 'width .5s ease', boxShadow: `0 0 8px ${colors[s.status] || '#00FFFF'}60` }} />
                           </div>
                         </div>
                       );
@@ -146,12 +141,15 @@ const AdminDashboard = () => {
 
                   {/* Categories */}
                   <div className="card" style={{ padding: 'var(--space-6)' }}>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 'var(--space-5)' }}>🏷️ Services by Category</h3>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-5)', color: 'var(--primary)' }}>🏷️ Services by Category</h3>
                     {stats.categoryStats.length === 0 ? (
                       <p style={{ color: 'var(--text-muted)', fontSize: '.85rem' }}>No services yet</p>
                     ) : stats.categoryStats.map((c, i) => (
                       <div key={c.category} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < stats.categoryStats.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                        <span style={{ fontSize: '.875rem', color: 'var(--text-secondary)' }}>{c.category}</span>
+                        <button
+                          onClick={() => { setTab('services'); setCategoryFilter(c.category); }}
+                          style={{ fontSize: '.875rem', color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', textDecoration: 'underline', textDecorationStyle: 'dotted' }}
+                        >{c.category}</button>
                         <span className="badge badge-primary">{c.count}</span>
                       </div>
                     ))}
@@ -160,7 +158,7 @@ const AdminDashboard = () => {
 
                 {/* Recent Bookings */}
                 <div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 'var(--space-4)' }}>🕐 Recent Bookings</h3>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-4)', color: 'var(--primary)' }}>🕐 Recent Bookings</h3>
                   <div className="table-wrapper">
                     <table className="table">
                       <thead><tr><th>Customer</th><th>Service</th><th>Date</th><th>Status</th></tr></thead>
@@ -180,7 +178,7 @@ const AdminDashboard = () => {
               </div>
             )}
 
-            {/* ─── Users ─────────────────────────────────────── */}
+            {/* ── Users ────────────────────────────────────────── */}
             {tab === 'users' && (
               <div className="table-wrapper">
                 <table className="table">
@@ -190,31 +188,21 @@ const AdminDashboard = () => {
                       <tr key={u.id}>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                            <div className="avatar" style={{ width: 32, height: 32, fontSize: '.75rem' }}>{u.name[0]?.toUpperCase()}</div>
+                            <div className="avatar" style={{ width: 32, height: 32, fontSize: '.75rem', background: 'var(--gradient-primary)' }}>{u.name[0]?.toUpperCase()}</div>
                             <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{u.name}</span>
                           </div>
                         </td>
                         <td>{u.email}</td>
-                        <td>
-                          <span className="badge" style={{ background: `${ROLE_COLORS[u.role]}22`, color: ROLE_COLORS[u.role], border: `1px solid ${ROLE_COLORS[u.role]}44` }}>
-                            {u.role}
-                          </span>
-                        </td>
+                        <td><span className="badge" style={{ background: `${ROLE_COLORS[u.role]}18`, color: ROLE_COLORS[u.role], border: `1px solid ${ROLE_COLORS[u.role]}44` }}>{u.role}</span></td>
                         <td>{u.location || '—'}</td>
-                        <td>
-                          <span className={`badge ${u.is_active ? 'badge-success' : 'badge-danger'}`}>
-                            {u.is_active ? '● Active' : '● Inactive'}
-                          </span>
-                        </td>
+                        <td><span className={`badge ${u.is_active ? 'badge-success' : 'badge-danger'}`}>{u.is_active ? '● Active' : '● Inactive'}</span></td>
                         <td style={{ fontSize: '.8rem', color: 'var(--text-muted)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
                         <td>
-                          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                          <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
                             <button className={`btn btn-sm ${u.is_active ? 'btn-danger' : 'btn-success'}`} onClick={() => handleToggleUser(u.id)}>
                               {u.is_active ? '🔒 Deactivate' : '🔓 Activate'}
                             </button>
-                            {u.role !== 'admin' && (
-                              <button className="btn btn-danger btn-sm" onClick={() => handleDeleteUser(u.id)}>🗑️</button>
-                            )}
+                            {u.role !== 'admin' && <button className="btn btn-danger btn-sm" onClick={() => handleDeleteUser(u.id)}>🗑️</button>}
                           </div>
                         </td>
                       </tr>
@@ -224,51 +212,127 @@ const AdminDashboard = () => {
               </div>
             )}
 
-            {/* ─── Services ──────────────────────────────────── */}
+            {/* ── Services ─────────────────────────────────────── */}
             {tab === 'services' && (
+              <div>
+                <div style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-5)', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontSize: '.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Filter:</span>
+                  <button className={`btn btn-sm ${!categoryFilter ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setCategoryFilter('')}>All</button>
+                  {categories.map(c => (
+                    <button key={c} className={`btn btn-sm ${categoryFilter === c ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setCategoryFilter(c)}>{c}</button>
+                  ))}
+                </div>
+                <div className="table-wrapper">
+                  <table className="table">
+                    <thead><tr><th>Service</th><th>Provider</th><th>Category</th><th>Price (THB)</th><th>Rating</th><th>Bookings</th><th>Actions</th></tr></thead>
+                    <tbody>
+                      {filteredServices.map(s => {
+                        const p = formatAllCurrencies(s.price);
+                        return (
+                          <tr key={s.id}>
+                            <td>
+                              <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{s.title}</div>
+                              <div style={{ fontSize: '.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{s.location}</div>
+                            </td>
+                            <td>{s.provider_name}</td>
+                            <td><span className="badge badge-primary">{s.category}</span></td>
+                            <td>
+                              <div style={{ fontWeight: 700, color: 'var(--primary)' }}>{p.thb}</div>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{p.usd}</div>
+                            </td>
+                            <td>⭐ {parseFloat(s.avg_rating || 0).toFixed(1)} ({s.review_count})</td>
+                            <td>{s.booking_count}</td>
+                            <td>
+                              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                                <Link to={`/services/${s.id}`} className="btn btn-ghost btn-sm">View</Link>
+                                <button className="btn btn-danger btn-sm" onClick={() => handleDeleteService(s.id)}>🗑️</button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* ── Bookings ─────────────────────────────────────── */}
+            {tab === 'bookings' && (
               <div className="table-wrapper">
                 <table className="table">
-                  <thead><tr><th>Service</th><th>Provider</th><th>Category</th><th>Price</th><th>Rating</th><th>Bookings</th><th>Actions</th></tr></thead>
+                  <thead><tr><th>Customer</th><th>Service</th><th>Provider</th><th>Date</th><th>Price (THB)</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead>
                   <tbody>
-                    {services.map(s => (
-                      <tr key={s.id}>
-                        <td>
-                          <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{s.title}</div>
-                          <div style={{ fontSize: '.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{s.location}</div>
-                        </td>
-                        <td>{s.provider_name}</td>
-                        <td><span className="badge badge-primary">{s.category}</span></td>
-                        <td style={{ color: 'var(--success)', fontWeight: 700 }}>${parseFloat(s.price).toFixed(2)}</td>
-                        <td>⭐ {parseFloat(s.avg_rating || 0).toFixed(1)} ({s.review_count})</td>
-                        <td>{s.booking_count}</td>
-                        <td>
-                          <button className="btn btn-danger btn-sm" onClick={() => handleDeleteService(s.id)}>🗑️ Delete</button>
-                        </td>
-                      </tr>
-                    ))}
+                    {bookings.map(b => {
+                      const p = formatAllCurrencies(b.price);
+                      return (
+                        <tr key={b.id}>
+                          <td style={{fontWeight:600}}>{b.customer_name}</td>
+                          <td>{b.service_title}</td>
+                          <td>{b.provider_name}</td>
+                          <td>{new Date(b.booking_date).toLocaleDateString()}</td>
+                          <td>
+                            <div style={{color:'var(--primary)',fontWeight:700}}>{p.thb}</div>
+                            <div style={{fontSize:'0.7rem',color:'var(--text-muted)'}}>{p.usd}</div>
+                          </td>
+                          <td style={{fontSize:'.8rem',color:'var(--text-secondary)',maxWidth:140}}>{b.location || <span style={{color:'var(--text-muted)'}}>—</span>}</td>
+                          <td><StatusBadge status={b.status}/></td>
+                          <td>
+                            {!['cancelled','completed'].includes(b.status) && (
+                              <button
+                                className="btn btn-danger btn-sm"
+                                onClick={() => handleAdminCancel(b.id)}
+                                title="Admin cancel this booking"
+                              >❌ Cancel</button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             )}
 
-            {/* ─── Bookings ──────────────────────────────────── */}
-            {tab === 'bookings' && (
+            {/* ── Reviews ──────────────────────────────────────── */}
+            {tab === 'reviews' && (
               <div className="table-wrapper">
                 <table className="table">
-                  <thead><tr><th>Customer</th><th>Service</th><th>Provider</th><th>Date</th><th>Price</th><th>Status</th></tr></thead>
+                  <thead><tr><th>Customer</th><th>Service</th><th>Rating</th><th>Comment</th><th>Flagged</th><th>Date</th><th>Actions</th></tr></thead>
                   <tbody>
-                    {bookings.map(b => (
-                      <tr key={b.id}>
-                        <td style={{ fontWeight: 600 }}>{b.customer_name}</td>
-                        <td>{b.service_title}</td>
-                        <td>{b.provider_name}</td>
-                        <td>{new Date(b.booking_date).toLocaleDateString()}</td>
-                        <td style={{ color: 'var(--success)', fontWeight: 700 }}>${parseFloat(b.price).toFixed(2)}</td>
-                        <td><StatusBadge status={b.status} /></td>
+                    {reviews.map(r => (
+                      <tr key={r.id} style={{ background: r.is_flagged ? 'rgba(255,71,87,0.05)' : undefined }}>
+                        <td style={{ fontWeight: 600 }}>{r.customer_name}</td>
+                        <td>
+                          <Link to={`/services/${r.service_id}`} style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500 }}>
+                            {r.service_title}
+                          </Link>
+                        </td>
+                        <td>{'⭐'.repeat(r.rating)} <span style={{ fontSize: '.8rem', color: 'var(--text-muted)' }}>({r.rating}/5)</span></td>
+                        <td style={{ maxWidth: 200, fontSize: '.85rem', color: 'var(--text-secondary)' }}>
+                          {r.comment ? <span className="truncate" style={{ display: 'block', maxWidth: 180 }}>{r.comment}</span> : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                        </td>
+                        <td>
+                          {r.is_flagged
+                            ? <span className="badge badge-danger">🚩 Flagged</span>
+                            : <span className="badge badge-muted">Clear</span>}
+                        </td>
+                        <td style={{ fontSize: '.8rem', color: 'var(--text-muted)' }}>{new Date(r.created_at).toLocaleDateString()}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                            <button
+                              className={`btn btn-sm ${r.is_flagged ? 'btn-ghost' : 'btn-outline'}`}
+                              onClick={() => handleFlagReview(r.id)}
+                              title={r.is_flagged ? 'Remove flag' : 'Flag review'}
+                            >{r.is_flagged ? '🏳️ Unflag' : '🚩 Flag'}</button>
+                            <button className="btn btn-danger btn-sm" onClick={() => handleDeleteReview(r.id)}>🗑️</button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                {reviews.length === 0 && <div className="empty-state"><div className="empty-icon">⭐</div><p>No reviews yet</p></div>}
               </div>
             )}
           </>

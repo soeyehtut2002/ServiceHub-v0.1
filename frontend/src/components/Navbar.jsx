@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
+import SearchAutocomplete from './SearchAutocomplete';
 import toast from 'react-hot-toast';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
+  const { unreadCount }  = useSocket() || {};
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -55,21 +58,14 @@ const Navbar = () => {
       <div className="navbar-inner container">
         {/* Logo */}
         <Link to="/" className="navbar-logo">
-          <span className="logo-icon">⚡</span>
+          <img src="/logo.png" alt="ServiceHub" className="logo-img" />
           <span className="logo-text">Service<span className="gradient-text">Hub</span></span>
         </Link>
 
-        {/* Search */}
-        <form className="navbar-search hide-mobile" onSubmit={handleSearch}>
-          <span className="search-icon">🔍</span>
-          <input
-            type="text"
-            placeholder="Search services..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="search-input"
-          />
-        </form>
+        {/* Search — desktop */}
+        <div className="navbar-search hide-mobile">
+          <SearchAutocomplete placeholder="Search services..." />
+        </div>
 
         {/* Nav Links */}
         <div className="navbar-links hide-mobile">
@@ -85,6 +81,16 @@ const Navbar = () => {
 
         {/* Auth / User */}
         <div className="navbar-actions">
+          {user && (
+            <Link to="/chat" className="chat-nav-btn" title="Messages">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              {unreadCount > 0 && (
+                <span className="chat-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+              )}
+            </Link>
+          )}
           {user ? (
             <div className="user-menu" ref={menuRef}>
               <button className="user-trigger" onClick={() => setMenuOpen(!menuOpen)}>
@@ -106,6 +112,12 @@ const Navbar = () => {
                   <div className="dropdown-divider" />
                   <Link to={getDashboardLink()} className="dropdown-item" onClick={() => setMenuOpen(false)}>
                     📊 Dashboard
+                  </Link>
+                  <Link to="/profile" className="dropdown-item" onClick={() => setMenuOpen(false)}>
+                    👤 My Profile
+                  </Link>
+                  <Link to="/chat" className="dropdown-item" onClick={() => setMenuOpen(false)}>
+                    💬 Messages {unreadCount > 0 && <span style={{background:'var(--primary)',color:'#fff',borderRadius:'10px',fontSize:'.7rem',padding:'1px 6px',marginLeft:'auto'}}>{unreadCount}</span>}
                   </Link>
                   {user.role === 'provider' && (
                     <Link to="/dashboard/provider" className="dropdown-item" onClick={() => setMenuOpen(false)}>
@@ -138,16 +150,9 @@ const Navbar = () => {
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="mobile-menu">
-          <form className="mobile-search" onSubmit={handleSearch}>
-            <input
-              type="text"
-              placeholder="Search services..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="input"
-            />
-            <button type="submit" className="btn btn-primary">Go</button>
-          </form>
+          <div className="mobile-search">
+            <SearchAutocomplete placeholder="Search services..." onClose={() => setMenuOpen(false)} />
+          </div>
           <Link to="/services" className="mobile-link" onClick={() => setMenuOpen(false)}>Services</Link>
           {user ? (
             <>
@@ -196,11 +201,16 @@ const Navbar = () => {
           white-space: nowrap;
           flex-shrink: 0;
         }
-        .logo-icon { font-size: 1.4rem; }
+        .logo-img {
+          width: 30px;
+          height: 30px;
+          object-fit: contain;
+          filter: drop-shadow(0 0 6px rgba(0,255,255,0.6));
+        }
         .logo-text { font-family: 'Plus Jakarta Sans', sans-serif; }
         .navbar-search {
           flex: 1;
-          max-width: 380px;
+          max-width: 360px;
           position: relative;
         }
         .search-icon {
@@ -236,6 +246,26 @@ const Navbar = () => {
         .nav-link:hover, .nav-link.active { color: var(--text-primary); background: rgba(255,255,255,0.07); }
         .navbar-actions { display: flex; align-items: center; gap: var(--space-3); margin-left: auto; }
         .auth-buttons { display: flex; gap: var(--space-2); }
+        /* Chat icon button */
+        .chat-nav-btn {
+          position: relative;
+          display: flex; align-items: center; justify-content: center;
+          width: 38px; height: 38px;
+          border-radius: var(--radius-md);
+          background: rgba(255,255,255,0.06);
+          border: 1px solid var(--border);
+          color: var(--text-secondary);
+          transition: var(--transition);
+        }
+        .chat-nav-btn:hover { background:rgba(108,99,255,.15); border-color:var(--primary); color:var(--primary-light); }
+        .chat-badge {
+          position: absolute; top: -5px; right: -5px;
+          background: var(--primary); color: #fff;
+          font-size: .65rem; font-weight: 700;
+          border-radius: 10px; padding: 1px 5px;
+          border: 2px solid var(--bg-base);
+          min-width: 18px; text-align: center;
+        }
         .user-menu { position: relative; }
         .user-trigger {
           display: flex;
@@ -249,7 +279,7 @@ const Navbar = () => {
           cursor: pointer;
           transition: var(--transition);
         }
-        .user-trigger:hover { border-color: var(--primary); background: rgba(108,99,255,0.1); }
+        .user-trigger:hover { border-color: var(--primary); background: rgba(0,255,255,0.08); box-shadow: 0 0 12px rgba(0,255,255,0.15); }
         .avatar-sm { width: 32px; height: 32px; font-size: 0.75rem; }
         .user-name { font-size: 0.875rem; font-weight: 600; }
         .chevron { font-size: 0.6rem; color: var(--text-muted); }

@@ -8,20 +8,27 @@ const {
   getAllServices,
   getAllBookings,
   adminDeleteService,
+  getAllReviews,
+  flagReview,
   adminDeleteReview,
+  getCancellations,
 } = require('../controllers/adminController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
-// All admin routes require authentication + admin role
 router.use(protect, authorize('admin'));
 
-router.get('/stats', getStats);
-router.get('/users', getAllUsers);
-router.patch('/users/:id/status', toggleUserStatus);
-router.delete('/users/:id', deleteUser);
-router.get('/services', getAllServices);
-router.delete('/services/:id', adminDeleteService);
-router.get('/bookings', getAllBookings);
-router.delete('/reviews/:id', adminDeleteReview);
+router.get('/stats',                getStats);
+router.get('/users',                getAllUsers);
+router.patch('/users/:id/status',   toggleUserStatus);
+router.delete('/users/:id',         deleteUser);
+router.get('/services',             getAllServices);
+router.delete('/services/:id',      adminDeleteService);
+router.get('/bookings',             getAllBookings);
+router.get('/cancellations',        getCancellations);
+router.get('/reviews',              getAllReviews);
+router.patch('/reviews/:id/flag',   flagReview);
+router.delete('/reviews/:id',       adminDeleteReview);
 
 module.exports = router;
+
+

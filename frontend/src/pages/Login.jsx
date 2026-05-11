@@ -48,7 +48,10 @@ const Login = () => {
             <input name="email" type="email" className="input" placeholder="john@example.com" value={form.email} onChange={handleChange} required />
           </div>
           <div className="form-group">
-            <label className="form-label">Password</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+              <label className="form-label" style={{ margin: 0 }}>Password</label>
+              <Link to="/forgot-password" style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 600 }}>Forgot password?</Link>
+            </div>
             <input name="password" type="password" className="input" placeholder="Your password" value={form.password} onChange={handleChange} required />
           </div>
           <button type="submit" className="btn btn-primary w-full btn-lg" disabled={loading}>
@@ -68,19 +71,19 @@ const Login = () => {
       </div>
       <style>{`
         .auth-page { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:var(--space-6); position:relative; background:var(--bg-base); padding-top:96px; }
-        .auth-glow { position:fixed; inset:0; background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(108,99,255,.12) 0%,transparent 70%); pointer-events:none; }
-        .auth-card { position:relative; width:100%; max-width:440px; background:var(--gradient-card); border:1px solid var(--border); border-radius:var(--radius-xl); padding:var(--space-10); box-shadow:var(--shadow-lg),var(--shadow-glow); animation:slideUp .4s ease; }
+        .auth-glow { position:fixed; inset:0; background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(0,255,255,.10) 0%,transparent 70%); pointer-events:none; }
+        .auth-card { position:relative; width:100%; max-width:440px; background:var(--gradient-card); border:1px solid rgba(0,255,255,0.12); border-radius:var(--radius-xl); padding:var(--space-10); box-shadow:var(--shadow-lg),0 0 40px rgba(0,255,255,0.08); animation:slideUp .4s ease; }
         .auth-header { text-align:center; margin-bottom:var(--space-8); }
-        .auth-logo { font-size:1.4rem; font-weight:900; color:var(--text-primary); display:inline-block; margin-bottom:var(--space-4); }
+        .auth-logo { font-size:1.4rem; font-weight:900; color:var(--primary); display:inline-block; margin-bottom:var(--space-4); }
         .auth-title { font-size:1.8rem; font-weight:800; margin-bottom:var(--space-2); }
         .auth-subtitle { color:var(--text-secondary); font-size:.9rem; }
         .auth-form { display:flex; flex-direction:column; gap:var(--space-4); margin-top:var(--space-6); }
-        .auth-demo { margin-top:var(--space-6); padding:var(--space-4); background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:var(--radius-md); }
+        .auth-demo { margin-top:var(--space-6); padding:var(--space-4); background:rgba(0,255,255,.04); border:1px solid rgba(0,255,255,0.1); border-radius:var(--radius-md); }
         .demo-title { font-size:.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:var(--space-3); }
         .demo-creds { display:flex; flex-direction:column; gap:var(--space-2); }
-        .demo-item { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(108,99,255,.1); border:1px solid rgba(108,99,255,.2); border-radius:var(--radius-sm); cursor:pointer; transition:var(--transition); }
-        .demo-item:hover { background:rgba(108,99,255,.2); }
-        .demo-role { font-size:.85rem; font-weight:700; color:var(--primary-light); }
+        .demo-item { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(0,255,255,.08); border:1px solid rgba(0,255,255,.15); border-radius:var(--radius-sm); cursor:pointer; transition:var(--transition); }
+        .demo-item:hover { background:rgba(0,255,255,.14); border-color:rgba(0,255,255,.3); }
+        .demo-role { font-size:.85rem; font-weight:700; color:var(--primary); }
         .demo-hint { font-size:.7rem; color:var(--text-muted); }
         .auth-footer { text-align:center; margin-top:var(--space-6); font-size:.875rem; color:var(--text-secondary); }
         @media(max-width:480px){ .auth-card{padding:var(--space-6);} }
