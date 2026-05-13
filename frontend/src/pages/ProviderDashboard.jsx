@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import API from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import StatusBadge from '../components/StatusBadge';
@@ -14,7 +14,8 @@ const AVAILABILITY_OPTIONS = [
 ];
 
 const ProviderDashboard = () => {
-  const { user } = useAuth();
+  const { user }   = useAuth();
+  const navigate   = useNavigate();
   const [tab,            setTab]            = useState('bookings');
   const [bookings,       setBookings]       = useState([]);
   const [services,       setServices]       = useState([]);
@@ -246,6 +247,7 @@ const ProviderDashboard = () => {
                     <div className="provider-service-actions">
                       <button className="btn btn-ghost btn-sm"    onClick={() => { setEditService(s); setShowAddService(true); }}>✏️ Edit</button>
                       <button className="btn btn-outline btn-sm"  onClick={() => setSlotService(s)}>🕐 Slots</button>
+                      <button className="btn btn-outline btn-sm"  onClick={() => navigate(`/provider/schedule/${s.id}`)}>📅 Schedule</button>
                       <Link   to={`/services/${s.id}`} className="btn btn-ghost btn-sm">👁️ View</Link>
                       <button className="btn btn-danger btn-sm"   onClick={() => handleDeleteService(s.id)}>🗑️</button>
                     </div>
@@ -273,11 +275,11 @@ const ProviderDashboard = () => {
       )}
 
       <style>{`
-        .provider-service-card { background:var(--gradient-card); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; transition:var(--transition); }
-        .provider-service-card:hover { border-color:var(--border-hover); transform:translateY(-3px); }
+        .provider-service-card { background:#fff; border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; transition:var(--transition); box-shadow:var(--shadow-sm); }
+        .provider-service-card:hover { border-color:var(--border-hover); transform:translateY(-3px); box-shadow:var(--shadow-md); }
         .provider-service-img { height:160px; overflow:hidden; position:relative; }
         .provider-service-img img { width:100%; height:100%; object-fit:cover; }
-        .inactive-badge { position:absolute; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; color:var(--danger); font-weight:700; }
+        .inactive-badge { position:absolute; inset:0; background:rgba(255,255,255,.7); display:flex; align-items:center; justify-content:center; color:var(--danger); font-weight:700; }
         .provider-service-body { padding:var(--space-4); display:flex; flex-direction:column; gap:var(--space-3); }
         .provider-service-title { font-size:1rem; font-weight:700; color:var(--text-primary); }
         .provider-service-meta { display:flex; align-items:center; justify-content:space-between; }
@@ -285,11 +287,11 @@ const ProviderDashboard = () => {
         .provider-service-stats span { font-size:.78rem; color:var(--text-muted); }
         .avail-row { display:flex; flex-direction:column; gap:var(--space-2); }
         .avail-pills { display:flex; flex-wrap:wrap; gap:var(--space-1); }
-        .avail-pill { padding:3px 8px; border-radius:20px; font-size:.72rem; font-weight:600; border:1px solid var(--border); background:transparent; color:var(--text-muted); cursor:pointer; transition:var(--transition); }
-        .avail-pill.active { background:rgba(255,255,255,.06); }
-        .avail-pill:hover { border-color:var(--border-hover); }
+        .avail-pill { padding:3px 8px; border-radius:20px; font-size:.72rem; font-weight:600; border:1px solid var(--border); background:#fff; color:var(--text-muted); cursor:pointer; transition:var(--transition); }
+        .avail-pill.active { background:var(--primary-glow); border-color:var(--primary); }
+        .avail-pill:hover { border-color:var(--border-hover); background:var(--bg-surface); }
         .provider-service-actions { display:flex; gap:var(--space-2); flex-wrap:wrap; border-top:1px solid var(--border); padding-top:var(--space-3); }
-        .tab-badge { margin-left:6px; background:#FF9800; color:#000; border-radius:10px; font-size:.7rem; padding:1px 6px; }
+        .tab-badge { margin-left:6px; background:#F59E0B; color:#fff; border-radius:10px; font-size:.7rem; padding:1px 6px; }
       `}</style>
     </div>
   );
@@ -418,9 +420,9 @@ const ServiceFormModal = ({ service, onClose, onSaved }) => {
       </div>
       <style>{`
         .upload-area { border:2px dashed var(--border); border-radius:var(--radius-md); cursor:pointer; transition:var(--transition); overflow:hidden; }
-        .upload-area:hover { border-color:var(--primary); background:rgba(108,99,255,.05); }
+        .upload-area:hover { border-color:var(--primary); background:var(--primary-glow); }
         .upload-placeholder { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--space-2); padding:var(--space-8); color:var(--text-muted); }
-        .capacity-banner { display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) var(--space-4); background:rgba(108,99,255,.1); border:1px solid rgba(108,99,255,.25); border-radius:var(--radius-md); }
+        .capacity-banner { display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) var(--space-4); background:rgba(14,165,233,.08); border:1px solid rgba(14,165,233,.2); border-radius:var(--radius-md); }
         .form-hint { font-size:.72rem; color:var(--text-muted); margin-top:4px; display:block; }
       `}</style>
     </div>
@@ -583,15 +585,15 @@ const SlotManagerModal = ({ service, onClose }) => {
         </div>
 
         <style>{`
-          .sm-info-bar { display:flex; flex-wrap:wrap; gap:var(--space-3); padding:var(--space-3) var(--space-4); background:rgba(0,212,170,.07); border:1px solid rgba(0,212,170,.2); border-radius:var(--radius-md); margin-bottom:var(--space-5); align-items:center; }
+          .sm-info-bar { display:flex; flex-wrap:wrap; gap:var(--space-3); padding:var(--space-3) var(--space-4); background:rgba(14,165,233,.07); border:1px solid rgba(14,165,233,.2); border-radius:var(--radius-md); margin-bottom:var(--space-5); align-items:center; }
           .sm-chip { font-size:.83rem; color:var(--text-secondary); }
           .sm-hint { font-size:.72rem; color:var(--text-muted); }
           .slot-section {}
           .slot-input-row { display:grid; grid-template-columns:1.2fr 1fr 1fr auto; gap:var(--space-2); margin-bottom:var(--space-2); align-items:center; }
           .slot-list { display:flex; flex-direction:column; gap:var(--space-2); max-height:340px; overflow-y:auto; padding-right:4px; }
-          .slot-item { display:flex; align-items:center; padding:var(--space-3) var(--space-4); background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:var(--radius-md); transition:var(--transition); }
-          .slot-item:hover { border-color:var(--border-hover); }
-          .slot-full { border-color:rgba(255,71,87,.3)!important; background:rgba(255,71,87,.05)!important; }
+          .slot-item { display:flex; align-items:center; padding:var(--space-3) var(--space-4); background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-md); transition:var(--transition); }
+          .slot-item:hover { border-color:var(--border-hover); background:#fff; }
+          .slot-full { border-color:rgba(239,68,68,.3)!important; background:rgba(239,68,68,.05)!important; }
           @media(max-width:540px){.slot-input-row{grid-template-columns:1fr 1fr;grid-template-rows:auto auto;}}
         `}</style>
       </div>

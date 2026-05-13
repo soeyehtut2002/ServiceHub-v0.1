@@ -5,18 +5,19 @@ import { SocketProvider } from './context/SocketContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 
-import Home              from './pages/Home';
-import Services          from './pages/Services';
-import ServiceDetail     from './pages/ServiceDetail';
-import Login             from './pages/Login';
-import Register          from './pages/Register';
-import ForgotPassword    from './pages/ForgotPassword';
-import ResetPassword     from './pages/ResetPassword';
-import CustomerDashboard from './pages/CustomerDashboard';
-import ProviderDashboard from './pages/ProviderDashboard';
-import AdminDashboard    from './pages/AdminDashboard';
-import ProfilePage       from './pages/ProfilePage';
-import ChatPage          from './pages/ChatPage';
+import Home                from './pages/Home';
+import Services            from './pages/Services';
+import ServiceDetail       from './pages/ServiceDetail';
+import Login               from './pages/Login';
+import Register            from './pages/Register';
+import ForgotPassword      from './pages/ForgotPassword';
+import ResetPassword       from './pages/ResetPassword';
+import CustomerDashboard   from './pages/CustomerDashboard';
+import ProviderDashboard   from './pages/ProviderDashboard';
+import ProviderSchedulePage from './pages/ProviderSchedulePage';
+import AdminDashboard      from './pages/AdminDashboard';
+import ProfilePage         from './pages/ProfilePage';
+import ChatPage            from './pages/ChatPage';
 
 function App() {
   return (
@@ -46,6 +47,11 @@ function App() {
             <Route path="/dashboard/provider" element={
               <ProtectedRoute allowedRoles={['provider']}>
                 <ProviderDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/provider/schedule/:serviceId" element={
+              <ProtectedRoute allowedRoles={['provider']}>
+                <ProviderSchedulePage />
               </ProtectedRoute>
             } />
 
@@ -87,16 +93,16 @@ function App() {
             toastOptions={{
               duration: 3500,
               style: {
-                background: '#141428',
-                color: '#E8F8FF',
-                border: '1px solid rgba(0,255,255,0.2)',
+                background: '#FFFFFF',
+                color: '#0C1A2E',
+                border: '1px solid #BAE6FD',
                 borderRadius: '12px',
-                fontSize: '0.9rem',
+                fontSize: '0.875rem',
                 fontWeight: '500',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 20px rgba(0,255,255,0.08)',
+                boxShadow: '0 8px 32px rgba(14,165,233,0.15)',
               },
-              success: { iconTheme: { primary: '#00FFFF', secondary: '#141428' } },
-              error:   { iconTheme: { primary: '#FF4757', secondary: '#141428' } },
+              success: { iconTheme: { primary: '#0EA5E9', secondary: '#fff' } },
+              error:   { iconTheme: { primary: '#EF4444', secondary: '#fff' } },
             }}
           />
         </BrowserRouter>

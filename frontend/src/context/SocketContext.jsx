@@ -16,10 +16,11 @@ export const SocketProvider = ({ children }) => {
   const { user }  = useAuth();
   const socketRef = useRef(null);
 
-  const [onlineUsers,  setOnlineUsers]  = useState([]);
-  const [unreadCount,  setUnreadCount]  = useState(0);
-  // Incoming real-time messages keyed by partnerId: { [partnerId]: [msg, ...] }
-  const [liveMessages, setLiveMessages] = useState({});
+  const [onlineUsers,       setOnlineUsers]       = useState([]);
+  const [unreadCount,       setUnreadCount]       = useState(0);
+  const [liveMessages,      setLiveMessages]      = useState({});
+  // Fires whenever a new in-app notification arrives via socket
+  const [notificationTrigger, setNotificationTrigger] = useState(null);
 
   // ── Connect / disconnect whenever auth changes ───────────────────────────────
   useEffect(() => {
@@ -76,6 +77,11 @@ export const SocketProvider = ({ children }) => {
       console.warn('Socket connection error:', err.message);
     });
 
+    // In-app notification delivery
+    socket.on('new_notification', (notification) => {
+      setNotificationTrigger(notification);
+    });
+
     // Fetch initial unread count from REST
     API.get('/messages/unread-count')
       .then(res => setUnreadCount(res.data.count))
@@ -114,6 +120,7 @@ export const SocketProvider = ({ children }) => {
       onlineUsers,
       unreadCount,
       liveMessages,
+      notificationTrigger,
       sendMessage,
       markRead,
       isOnline,

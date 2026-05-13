@@ -6,15 +6,18 @@ const path       = require('path');
 const { Server } = require('socket.io');
 const jwt        = require('jsonwebtoken');
 
-const authRoutes     = require('./routes/authRoutes');
-const serviceRoutes  = require('./routes/serviceRoutes');
-const bookingRoutes  = require('./routes/bookingRoutes');
-const reviewRoutes   = require('./routes/reviewRoutes');
-const adminRoutes    = require('./routes/adminRoutes');
-const messageRoutes  = require('./routes/messageRoutes');
-const providerRoutes = require('./routes/providerRoutes');
-const profileRoutes  = require('./routes/profileRoutes');
-const timeSlotRoutes = require('./routes/timeSlotRoutes');
+const authRoutes         = require('./routes/authRoutes');
+const serviceRoutes      = require('./routes/serviceRoutes');
+const bookingRoutes      = require('./routes/bookingRoutes');
+const reviewRoutes       = require('./routes/reviewRoutes');
+const adminRoutes        = require('./routes/adminRoutes');
+const messageRoutes      = require('./routes/messageRoutes');
+const providerRoutes     = require('./routes/providerRoutes');
+const profileRoutes      = require('./routes/profileRoutes');
+const timeSlotRoutes     = require('./routes/timeSlotRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const scheduleRoutes     = require('./routes/scheduleRoutes');
+const socketState        = require('./services/socketState');
 
 const app        = express();
 const httpServer = http.createServer(app);
@@ -96,7 +99,8 @@ io.on('connection', (socket) => {
   });
 });
 
-// Export io for use in controllers if needed
+// Initialise shared socket state so notificationService can emit without circular imports
+socketState.init(io, onlineUsers);
 module.exports.io = io;
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
@@ -118,8 +122,10 @@ app.use('/api/reviews',   reviewRoutes);
 app.use('/api/admin',     adminRoutes);
 app.use('/api/messages',  messageRoutes);
 app.use('/api/providers', providerRoutes);
-app.use('/api/profile',   profileRoutes);
-app.use('/api/slots',     timeSlotRoutes);
+app.use('/api/profile',       profileRoutes);
+app.use('/api/slots',         timeSlotRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/schedule',      scheduleRoutes);
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/', (req, res) => {

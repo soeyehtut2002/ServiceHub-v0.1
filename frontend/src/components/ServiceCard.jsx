@@ -71,30 +71,22 @@ const ServiceCard = ({ service }) => {
         }
         .service-card:hover .service-card-image img { transform: scale(1.08); }
         .service-card-category {
-          position: absolute;
-          top: 12px;
-          left: 12px;
-          background: rgba(0,0,0,0.7);
+          position: absolute; top: 12px; left: 12px;
+          background: rgba(255,255,255,0.92);
           backdrop-filter: blur(8px);
-          color: var(--primary-light);
+          color: var(--primary-dark);
           padding: 4px 10px;
           border-radius: var(--radius-full);
-          font-size: 0.72rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          border: 1px solid rgba(108,99,255,0.3);
+          font-size: 0.72rem; font-weight: 700;
+          text-transform: uppercase; letter-spacing: 0.05em;
+          border: 1px solid rgba(14,165,233,0.25);
         }
         .service-card-verified {
-          position: absolute;
-          top: 12px;
-          right: 12px;
-          background: rgba(0,212,170,0.9);
-          color: #000;
-          padding: 3px 8px;
+          position: absolute; top: 12px; right: 12px;
+          background: var(--success);
+          color: #fff; padding: 3px 8px;
           border-radius: var(--radius-full);
-          font-size: 0.7rem;
-          font-weight: 700;
+          font-size: 0.7rem; font-weight: 700;
         }
         .service-card-body {
           padding: var(--space-4) var(--space-5);

@@ -128,6 +128,42 @@ END $$;
 -- Indexes for efficient availability queries
 CREATE INDEX IF NOT EXISTS idx_timeslots_date_service ON time_slots(slot_date, service_id);
 CREATE INDEX IF NOT EXISTS idx_timeslots_capacity     ON time_slots(service_id, slot_date, booked_count, max_capacity);
+
+-- ── Per-service weekly schedule ───────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS service_schedules (
+  id           SERIAL PRIMARY KEY,
+  service_id   INT  NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  day_of_week  INT  NOT NULL,   -- 0=Sunday, 1=Monday ... 6=Saturday
+  start_time   TIME NOT NULL,
+  end_time     TIME NOT NULL,
+  is_active    BOOLEAN NOT NULL DEFAULT TRUE,
+  UNIQUE(service_id, day_of_week)
+);
+CREATE INDEX IF NOT EXISTS idx_schedules_service ON service_schedules(service_id);
+
+-- ── Per-service blocked dates (holidays, leave) ───────────────────────────────
+CREATE TABLE IF NOT EXISTS service_blocked_dates (
+  id           SERIAL PRIMARY KEY,
+  service_id   INT  NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  blocked_date DATE NOT NULL,
+  reason       TEXT,
+  created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(service_id, blocked_date)
+);
+CREATE INDEX IF NOT EXISTS idx_blocked_service ON service_blocked_dates(service_id, blocked_date);
+
+-- ── In-app notifications ──────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS notifications (
+  id         SERIAL PRIMARY KEY,
+  user_id    INT  NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type       VARCHAR(50) NOT NULL,
+  title      TEXT NOT NULL,
+  message    TEXT NOT NULL,
+  data       JSONB,
+  is_read    BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read, created_at DESC);
 `;
 
 async function migrate() {
@@ -147,6 +183,9 @@ async function migrate() {
     console.log('✅  time_slots.max_capacity               — OK');
     console.log('✅  time_slots.booked_count               — OK');
     console.log('✅  availability indexes                  — OK');
+    console.log('✅  service_schedules table               — OK');
+    console.log('✅  service_blocked_dates table           — OK');
+    console.log('✅  notifications table                   — OK');
     console.log('\n🎉 All migrations applied successfully!\n');
   } catch (err) {
     console.error('\n❌ Migration failed:', err.message);

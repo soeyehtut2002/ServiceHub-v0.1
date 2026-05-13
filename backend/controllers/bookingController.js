@@ -1,4 +1,12 @@
-const db = require('../config/db');
+const db                = require('../config/db');
+const { notify }        = require('../services/notificationService');
+const email             = require('../services/emailService');
+
+// ── Helper: format booking date ───────────────────────────────────────────────
+function fmtDate(d) {
+  if (!d) return 'TBD';
+  try { return new Date(d).toLocaleString('en-US', { dateStyle:'medium', timeStyle:'short' }); } catch { return String(d); }
+}
 
 // ── @route  POST /api/bookings ────────────────────────────────────────────────
 const createBooking = async (req, res) => {
@@ -91,7 +99,47 @@ const createBooking = async (req, res) => {
       );
     }
 
-    res.status(201).json(result.rows[0]);
+    // ── Fetch customer + provider details for notifications ───────────────────
+    const booking    = result.rows[0];
+    const peopleRows = await db.query(
+      `SELECT u.id, u.name, u.email, u.role FROM users u
+       WHERE u.id = ANY($1::int[])`,
+      [[req.user.id, svc.provider_id]]
+    );
+    const people      = Object.fromEntries(peopleRows.rows.map(u => [u.id, u]));
+    const customer    = people[req.user.id];
+    const provider    = people[svc.provider_id];
+    const dateLabel   = fmtDate(booking_date);
+
+    // Notify provider
+    notify({
+      userId:  svc.provider_id,
+      type:    'booking_new',
+      title:   '📅 New Booking Request',
+      message: `${customer?.name || 'A customer'} booked "${svc.title}" for ${dateLabel}`,
+      data:    { booking_id: booking.id, service_id, service_title: svc.title },
+      emailFn: provider ? () => email.newBookingReceived({
+        to: provider.email, providerName: provider.name,
+        customerName: customer?.name || 'A customer',
+        serviceTitle: svc.title, bookingDate: dateLabel, bookingId: booking.id,
+      }) : null,
+    });
+
+    // Notify customer
+    notify({
+      userId:  req.user.id,
+      type:    'booking_confirmed',
+      title:   '✅ Booking Submitted',
+      message: `Your booking for "${svc.title}" on ${dateLabel} has been received.`,
+      data:    { booking_id: booking.id, service_id, service_title: svc.title },
+      emailFn: customer ? () => email.bookingConfirmed({
+        to: customer.email, customerName: customer.name,
+        serviceTitle: svc.title, bookingDate: dateLabel,
+        providerName: provider?.name || 'Provider', bookingId: booking.id,
+      }) : null,
+    });
+
+    res.status(201).json(booking);
   } catch (error) {
     console.error('createBooking error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -191,12 +239,12 @@ const updateBookingStatus = async (req, res) => {
          WHERE id = $2 RETURNING *`,
         [cancellation_reason || null, id]
       );
-      // Decrement booked_count and unset is_booked
+      // Decrement booked_count and recalculate is_booked
       if (check.rows[0].time_slot_id) {
         await db.query(
           `UPDATE time_slots
            SET booked_count = GREATEST(0, booked_count - 1),
-               is_booked    = FALSE
+               is_booked    = ((GREATEST(0, booked_count - 1)) >= max_capacity)
            WHERE id = $1`,
           [check.rows[0].time_slot_id]
         );
@@ -209,6 +257,36 @@ const updateBookingStatus = async (req, res) => {
     }
 
     res.status(200).json(result.rows[0]);
+
+    // ── Notify customer of status change ─────────────────────────────────
+    const bk = result.rows[0];
+    const info = await db.query(
+      `SELECT s.title AS service_title, s.provider_id,
+              cu.name AS customer_name, cu.email AS customer_email,
+              pu.name AS provider_name
+       FROM bookings b
+       JOIN services s ON b.service_id = s.id
+       JOIN users cu   ON b.customer_id = cu.id
+       JOIN users pu   ON s.provider_id = pu.id
+       WHERE b.id = $1`, [bk.id]
+    );
+    if (info.rows[0]) {
+      const { service_title, customer_name, customer_email, provider_name } = info.rows[0];
+      const dateLabel = fmtDate(bk.booking_date);
+      const statusLabel = { confirmed:'Confirmed ✅', cancelled:'Cancelled ❌', completed:'Completed 🏁', paused:'Paused ⏸️' }[status] || status;
+      notify({
+        userId: bk.customer_id,
+        type: 'booking_status',
+        title: `Booking ${statusLabel}`,
+        message: `Your booking for "${service_title}" on ${dateLabel} is now ${status}.`,
+        data: { booking_id: bk.id, service_title },
+        emailFn: () => email.bookingStatusUpdated({
+          to: customer_email, customerName: customer_name,
+          serviceTitle: service_title, status, bookingDate: dateLabel,
+          bookingId: bk.id, reason: status === 'cancelled' ? cancellation_reason : null,
+        }),
+      });
+    }
   } catch (error) {
     console.error('updateBookingStatus error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -246,18 +324,47 @@ const cancelBooking = async (req, res) => {
       [reason || null, id]
     );
 
-    // Free the time slot capacity
+    // Free the time slot capacity and recalculate is_booked
     if (check.rows[0].time_slot_id) {
       await db.query(
         `UPDATE time_slots
          SET booked_count = GREATEST(0, booked_count - 1),
-             is_booked    = FALSE
+             is_booked    = ((GREATEST(0, booked_count - 1)) >= max_capacity)
          WHERE id = $1`,
         [check.rows[0].time_slot_id]
       );
     }
 
     res.status(200).json(result.rows[0]);
+
+    // ── Notify provider of customer cancellation ──────────────────────────
+    const bk2 = result.rows[0];
+    const info2 = await db.query(
+      `SELECT s.title AS service_title, s.provider_id,
+              cu.name AS customer_name,
+              pu.name AS provider_name, pu.email AS provider_email
+       FROM bookings b
+       JOIN services s ON b.service_id = s.id
+       JOIN users cu   ON b.customer_id = cu.id
+       JOIN users pu   ON s.provider_id = pu.id
+       WHERE b.id = $1`, [bk2.id]
+    );
+    if (info2.rows[0]) {
+      const { service_title, provider_id, customer_name, provider_name, provider_email } = info2.rows[0];
+      const dateLabel = fmtDate(bk2.booking_date);
+      notify({
+        userId: provider_id,
+        type: 'booking_cancelled',
+        title: '❌ Booking Cancelled',
+        message: `${customer_name} cancelled their booking for "${service_title}" on ${dateLabel}.`,
+        data: { booking_id: bk2.id, service_title },
+        emailFn: () => email.bookingCancelledByCustomer({
+          to: provider_email, providerName: provider_name,
+          customerName: customer_name, serviceTitle: service_title,
+          bookingDate: dateLabel, bookingId: bk2.id, reason: reason || null,
+        }),
+      });
+    }
   } catch (error) {
     console.error('cancelBooking error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -320,12 +427,12 @@ const adminCancelBooking = async (req, res) => {
       [reason || 'Cancelled by administrator', id]
     );
 
-    // Free the time slot capacity
+    // Free the time slot capacity and recalculate is_booked
     if (check.rows[0].time_slot_id) {
       await db.query(
         `UPDATE time_slots
          SET booked_count = GREATEST(0, booked_count - 1),
-             is_booked    = FALSE
+             is_booked    = ((GREATEST(0, booked_count - 1)) >= max_capacity)
          WHERE id = $1`,
         [check.rows[0].time_slot_id]
       );
