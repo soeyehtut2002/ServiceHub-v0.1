@@ -189,7 +189,13 @@ const AdminDashboard = () => {
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                             <div className="avatar" style={{ width: 32, height: 32, fontSize: '.75rem', background: 'var(--gradient-primary)' }}>{u.name[0]?.toUpperCase()}</div>
-                            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{u.name}</span>
+                            <Link
+                              to={`/profile/${u.id}`}
+                              style={{ fontWeight: 700, color: 'var(--primary)', textDecoration: 'none' }}
+                              title="View profile"
+                            >
+                              {u.name}
+                            </Link>
                           </div>
                         </td>
                         <td>{u.email}</td>
@@ -199,6 +205,7 @@ const AdminDashboard = () => {
                         <td style={{ fontSize: '.8rem', color: 'var(--text-muted)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
                         <td>
                           <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                            <Link to={`/profile/${u.id}`} className="btn btn-ghost btn-sm" title="View full profile">👁️</Link>
                             <button className={`btn btn-sm ${u.is_active ? 'btn-danger' : 'btn-success'}`} onClick={() => handleToggleUser(u.id)}>
                               {u.is_active ? '🔒 Deactivate' : '🔓 Activate'}
                             </button>

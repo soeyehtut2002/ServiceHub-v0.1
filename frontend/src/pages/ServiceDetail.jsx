@@ -137,15 +137,30 @@ const ServiceDetail = () => {
           <div className="booking-card">
             <div className="booking-price"><span className="currency">$</span>{parseFloat(service.price).toFixed(2)}<span className="booking-per"> / service</span></div>
             <div className="divider"/>
-            <div className="provider-info">
-              <div className="avatar avatar-lg">{service.provider_name?.[0]?.toUpperCase()}</div>
-              <div>
-                <p className="provider-name">{service.provider_name}</p>
-                <p className="provider-label">{service.provider_verified ? '✓ Verified Provider' : 'Service Provider'}</p>
-                {service.provider_location && <p style={{fontSize:'.78rem',color:'var(--text-muted)',marginTop:2}}>📍 {service.provider_location}</p>}
+            <Link
+              to={user ? `/profile/${service.provider_id}` : '/login'}
+              className="provider-info-link"
+              title="View provider profile"
+            >
+              <div className="provider-info">
+                {service.provider_avatar
+                  ? <img
+                      src={service.provider_avatar.startsWith('/uploads') ? `http://localhost:5000${service.provider_avatar}` : service.provider_avatar}
+                      alt={service.provider_name}
+                      style={{width:48,height:48,borderRadius:'50%',objectFit:'cover',border:'2px solid var(--primary)',flexShrink:0}}
+                    />
+                  : <div className="avatar avatar-lg">{service.provider_name?.[0]?.toUpperCase()}</div>
+                }
+                <div style={{flex:1}}>
+                  <p className="provider-name">{service.provider_name}</p>
+                  <p className="provider-label">{service.provider_verified ? '✓ Verified Provider' : 'Service Provider'}</p>
+                  {service.provider_location && <p style={{fontSize:'.78rem',color:'var(--text-muted)',marginTop:2}}>📍 {service.provider_location}</p>}
+                </div>
+                <span className="provider-arrow">→</span>
               </div>
-            </div>
-            {service.provider_bio && <p style={{fontSize:'.85rem',color:'var(--text-secondary)',lineHeight:1.6,padding:'var(--space-4)',background:'rgba(255,255,255,.04)',borderRadius:'var(--radius-md)'}}>{service.provider_bio}</p>}
+            </Link>
+            {service.provider_bio && <p style={{fontSize:'.85rem',color:'var(--text-secondary)',lineHeight:1.6,padding:'var(--space-4)',background:'rgba(14,165,233,.06)',borderRadius:'var(--radius-md)'}}>{service.provider_bio}</p>}
+
             <div className="divider"/>
             {!user ? (
               <Link to="/login" className="btn btn-primary w-full btn-lg" state={{ from: { pathname: `/services/${id}` } }}>🔐 Login to Book</Link>
@@ -187,7 +202,30 @@ const ServiceDetail = () => {
         .booking-price { font-size:2rem; font-weight:900; color:var(--success); }
         .booking-per { font-size:.9rem; font-weight:400; color:var(--text-muted); }
         .provider-info { display:flex; align-items:center; gap:var(--space-4); }
-        .provider-name { font-weight:700; font-size:.95rem; }
+        .provider-info-link {
+          display:block;
+          text-decoration:none;
+          border-radius:var(--radius-md);
+          padding:var(--space-3);
+          margin:-var(--space-3);
+          border:1px solid transparent;
+          transition:var(--transition);
+        }
+        .provider-info-link:hover {
+          background:rgba(14,165,233,.07);
+          border-color:var(--border-hover);
+          transform:translateY(-2px);
+          box-shadow:var(--shadow-sm);
+        }
+        .provider-info-link:hover .provider-arrow { opacity:1; transform:translateX(3px); color:var(--primary); }
+        .provider-arrow {
+          font-size:1.1rem;
+          color:var(--text-muted);
+          opacity:0;
+          transition:var(--transition);
+          flex-shrink:0;
+        }
+        .provider-name { font-weight:700; font-size:.95rem; color:var(--text-primary); }
         .provider-label { font-size:.75rem; color:var(--success); }
         .detail-info-grid { display:flex; flex-direction:column; gap:var(--space-4); margin-top:var(--space-4); }
         .detail-info-item { display:flex; align-items:center; gap:var(--space-4); }
@@ -203,6 +241,7 @@ const ServiceDetail = () => {
         .review-img-thumb-view { width:72px; height:72px; object-fit:cover; border-radius:var(--radius-md); border:1px solid var(--border); cursor:pointer; transition:var(--transition); }
         .review-img-thumb-view:hover { transform:scale(1.05); border-color:var(--primary); }
         @media(max-width:900px){ .detail-layout{grid-template-columns:1fr;} .booking-card{position:static;} }
+
       `}</style>
     </div>
   );

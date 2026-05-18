@@ -17,6 +17,7 @@ import ProviderDashboard   from './pages/ProviderDashboard';
 import ProviderSchedulePage from './pages/ProviderSchedulePage';
 import AdminDashboard      from './pages/AdminDashboard';
 import ProfilePage         from './pages/ProfilePage';
+import ViewProfilePage     from './pages/ViewProfilePage';
 import ChatPage            from './pages/ChatPage';
 
 function App() {
@@ -66,6 +67,13 @@ function App() {
             <Route path="/profile" element={
               <ProtectedRoute allowedRoles={['customer', 'provider', 'admin']}>
                 <ProfilePage />
+              </ProtectedRoute>
+            } />
+
+            {/* View another user's profile (read-only) */}
+            <Route path="/profile/:id" element={
+              <ProtectedRoute allowedRoles={['customer', 'provider', 'admin']}>
+                <ViewProfilePage />
               </ProtectedRoute>
             } />
 

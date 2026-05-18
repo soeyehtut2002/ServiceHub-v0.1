@@ -22,10 +22,16 @@ const socketState        = require('./services/socketState');
 const app        = express();
 const httpServer = http.createServer(app);
 
+const ALLOWED_ORIGINS = [
+  process.env.CLIENT_URL || 'http://localhost:5173',
+  'http://localhost:5173',
+  'http://localhost:5174',
+];
+
 // ─── Socket.io ────────────────────────────────────────────────────────────────
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: ALLOWED_ORIGINS,
     credentials: true,
   },
 });
@@ -105,7 +111,12 @@ module.exports.io = io;
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    return callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
   credentials: true,
 }));
 app.use(express.json());

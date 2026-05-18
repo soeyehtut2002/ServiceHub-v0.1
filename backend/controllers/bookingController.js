@@ -152,14 +152,15 @@ const getMyBookings = async (req, res) => {
     const result = await db.query(
       `SELECT
          b.*,
-         s.title    AS service_title,
+         s.title       AS service_title,
          s.image_url,
          s.price,
          s.category,
          s.duration_hours,
          s.team_count,
-         u.name     AS provider_name,
-         u.phone    AS provider_phone,
+         s.provider_id,
+         u.name        AS provider_name,
+         u.phone       AS provider_phone,
          ts.slot_date, ts.start_time, ts.end_time,
          ts.max_capacity, ts.booked_count
        FROM bookings b

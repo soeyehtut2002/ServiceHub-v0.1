@@ -129,7 +129,15 @@ const CustomerDashboard = () => {
                       <div style={{fontWeight:700,color:'var(--text-primary)'}}>{b.service_title}</div>
                       <div style={{fontSize:'.75rem',color:'var(--text-muted)'}}>{b.category}</div>
                     </td>
-                    <td>{b.provider_name}</td>
+                    <td>
+                      <Link
+                        to={`/profile/${b.provider_id}`}
+                        style={{fontWeight:600,color:'var(--primary)',textDecoration:'none'}}
+                        title="View provider profile"
+                      >
+                        {b.provider_name}
+                      </Link>
+                    </td>
                     <td>
                       {b.slot_date ? (
                         <div>

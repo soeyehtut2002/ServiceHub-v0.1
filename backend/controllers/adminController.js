@@ -57,6 +57,59 @@ const getAllUsers = async (req, res) => {
   }
 };
 
+// ─── @route  GET /api/admin/users/:id ─────────────────────────────────────────
+const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await db.query(
+      `SELECT id, name, email, role, phone, location, bio, avatar_url,
+              gallery_urls, account_type, is_verified, is_active, created_at
+       FROM users WHERE id = $1`,
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const profile = result.rows[0];
+
+    if (profile.role === 'provider') {
+      const services = await db.query(
+        `SELECT s.id, s.title, s.category, s.price, s.image_url,
+                s.availability_status, s.location AS service_location,
+                s.description, s.is_active,
+                COALESCE(ROUND(AVG(r.rating),1),0) AS avg_rating,
+                COUNT(DISTINCT r.id)::int AS review_count,
+                COUNT(DISTINCT b.id)::int AS booking_count
+         FROM services s
+         LEFT JOIN reviews r ON r.service_id = s.id
+         LEFT JOIN bookings b ON b.service_id = s.id
+         WHERE s.provider_id = $1
+         GROUP BY s.id
+         ORDER BY s.created_at DESC`,
+        [id]
+      );
+      profile.services = services.rows;
+
+      const statsRes = await db.query(
+        `SELECT
+           COALESCE(ROUND(AVG(r.rating),1), 0) AS overall_rating,
+           COUNT(DISTINCT r.id)::int            AS total_reviews,
+           COUNT(DISTINCT b.id)::int            AS total_bookings
+         FROM services s
+         LEFT JOIN reviews r  ON r.service_id  = s.id
+         LEFT JOIN bookings b ON b.service_id  = s.id
+         WHERE s.provider_id = $1`,
+        [id]
+      );
+      profile.stats = statsRes.rows[0];
+    }
+    res.status(200).json(profile);
+  } catch (error) {
+    console.error('getUserById error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 // ─── @route  PATCH /api/admin/users/:id/status ───────────────────────────────
 const toggleUserStatus = async (req, res) => {
   try {
@@ -242,6 +295,7 @@ const getCancellations = async (req, res) => {
 module.exports = {
   getStats,
   getAllUsers,
+  getUserById,
   toggleUserStatus,
   deleteUser,
   getAllServices,

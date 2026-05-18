@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   getStats,
   getAllUsers,
+  getUserById,
   toggleUserStatus,
   deleteUser,
   getAllServices,
@@ -19,6 +20,7 @@ router.use(protect, authorize('admin'));
 
 router.get('/stats',                getStats);
 router.get('/users',                getAllUsers);
+router.get('/users/:id',            getUserById);
 router.patch('/users/:id/status',   toggleUserStatus);
 router.delete('/users/:id',         deleteUser);
 router.get('/services',             getAllServices);

@@ -147,7 +147,13 @@ const ProviderDashboard = () => {
                   {bookings.map(b => (
                     <tr key={b.id}>
                       <td>
-                        <div style={{fontWeight:700,color:'var(--text-primary)'}}>{b.customer_name}</div>
+                        <Link
+                          to={`/profile/${b.customer_id}`}
+                          style={{fontWeight:700,color:'var(--primary)',textDecoration:'none',display:'block'}}
+                          title="View customer profile"
+                        >
+                          {b.customer_name}
+                        </Link>
                         <div style={{fontSize:'.75rem',color:'var(--text-muted)'}}>{b.customer_email}</div>
                         {b.customer_phone && <div style={{fontSize:'.75rem',color:'var(--text-muted)'}}>📞 {b.customer_phone}</div>}
                       </td>

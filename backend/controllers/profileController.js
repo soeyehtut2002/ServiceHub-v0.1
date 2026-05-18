@@ -16,21 +16,38 @@ const getPublicProfile = async (req, res) => {
 
     const profile = result.rows[0];
 
-    // If provider, also include their services
+    // If provider, include their services + aggregate review stats
     if (profile.role === 'provider') {
       const services = await db.query(
         `SELECT s.id, s.title, s.category, s.price, s.image_url,
-                s.availability_status,
+                s.availability_status, s.location AS service_location,
+                s.description,
                 COALESCE(ROUND(AVG(r.rating),1),0) AS avg_rating,
-                COUNT(DISTINCT r.id)::int AS review_count
+                COUNT(DISTINCT r.id)::int AS review_count,
+                COUNT(DISTINCT b.id)::int AS booking_count
          FROM services s
          LEFT JOIN reviews r ON r.service_id = s.id
+         LEFT JOIN bookings b ON b.service_id = s.id
          WHERE s.provider_id = $1 AND s.is_active = TRUE
          GROUP BY s.id
          ORDER BY s.created_at DESC`,
         [id]
       );
       profile.services = services.rows;
+
+      // Overall provider stats
+      const statsRes = await db.query(
+        `SELECT
+           COALESCE(ROUND(AVG(r.rating),1), 0) AS overall_rating,
+           COUNT(DISTINCT r.id)::int            AS total_reviews,
+           COUNT(DISTINCT b.id)::int            AS total_bookings
+         FROM services s
+         LEFT JOIN reviews r  ON r.service_id  = s.id
+         LEFT JOIN bookings b ON b.service_id  = s.id
+         WHERE s.provider_id = $1 AND s.is_active = TRUE`,
+        [id]
+      );
+      profile.stats = statsRes.rows[0];
     }
 
     res.status(200).json(profile);
