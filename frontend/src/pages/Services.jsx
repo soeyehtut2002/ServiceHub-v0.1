@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import API from '../api/axios';
 import ServiceCard from '../components/ServiceCard';
+import { Search } from 'lucide-react';
 
 const CATEGORIES = ['Cleaning','Plumbing','Electrical','Gardening','Painting','Moving','Tutoring','Photography','Other'];
 
@@ -59,7 +60,7 @@ const Services = () => {
     <div className="page-wrapper">
       <div className="services-hero">
         <div className="container">
-          <h1 className="h2">🔍 Find Services</h1>
+          <h1 className="h2">Find Services</h1>
           <p className="text-muted mt-2">{total} services available</p>
           <form className="services-search-bar" onSubmit={handleSearch}>
             <input className="input" placeholder="Search by name or description..." value={filters.keyword} onChange={(e) => setFilters({ ...filters, keyword: e.target.value })} />
@@ -97,7 +98,7 @@ const Services = () => {
               <p className="filter-label">Min Rating</p>
               <select className="select" value={filters.min_rating} onChange={(e) => setFilters({ ...filters, min_rating: e.target.value })}>
                 <option value="">Any</option>
-                {[1,2,3,4].map(n => <option key={n} value={n}>{n}+ ⭐</option>)}
+                {[1,2,3,4].map(n => <option key={n} value={n}>{n}+ stars</option>)}
               </select>
             </div>
             <button className="btn btn-primary w-full" onClick={() => fetchServices()}>Apply Filters</button>
@@ -110,7 +111,7 @@ const Services = () => {
             <div className="spinner-container"><div className="spinner" /></div>
           ) : services.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-icon">🔍</div>
+              <div className="empty-icon" style={{display:'flex',justifyContent:'center',opacity:0.4}}><Search size={40} strokeWidth={1.5}/></div>
               <h3>No services found</h3>
               <p>Try adjusting your search or filters</p>
               <button className="btn btn-primary mt-4" onClick={handleClear}>Clear Filters</button>

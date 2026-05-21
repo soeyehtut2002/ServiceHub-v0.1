@@ -3,23 +3,24 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API from '../api/axios';
 import toast from 'react-hot-toast';
+import { Building2, Briefcase, Users } from 'lucide-react';
 
 const ACCOUNT_TYPES = [
   {
     value: 'company',
-    icon: '🏢',
+    Icon: Building2,
     label: 'Company',
     desc: 'Multiple staff — flexible scheduling, parallel bookings allowed',
   },
   {
     value: 'freelancer',
-    icon: '🧑‍💼',
+    Icon: Briefcase,
     label: 'Freelancer',
     desc: 'Solo provider — one booking per time slot, no double-booking',
   },
   {
     value: 'group',
-    icon: '👥',
+    Icon: Users,
     label: 'Group',
     desc: 'Team of providers — flexible with optional slot limits',
   },
@@ -50,7 +51,7 @@ const Register = () => {
       if (form.role !== 'provider') delete payload.account_type;
       const res = await API.post('/auth/register', payload);
       login(res.data.user, res.data.token);
-      toast.success(`Welcome, ${res.data.user.name}! 🎉`);
+      toast.success(`Welcome, ${res.data.user.name}!`);
       const routes = { customer: '/', provider: '/dashboard/provider', admin: '/dashboard/admin' };
       navigate(routes[res.data.user.role] || '/');
     } catch (err) {
@@ -65,7 +66,7 @@ const Register = () => {
       <div className="auth-glow" />
       <div className="auth-card">
         <div className="auth-header">
-          <Link to="/" className="auth-logo">⚡ ServiceHub</Link>
+          <Link to="/" className="auth-logo">ServiceHub</Link>
           <h1 className="auth-title">Create Account</h1>
           <p className="auth-subtitle">Join thousands of users on ServiceHub</p>
         </div>
@@ -94,7 +95,7 @@ const Register = () => {
                   className={`role-btn ${form.role === role ? 'active' : ''}`}
                   onClick={() => setForm({ ...form, role, account_type: '' })}
                 >
-                  {role === 'customer' ? '🛒 Customer' : '🔧 Service Provider'}
+                  {role === 'customer' ? 'Customer' : 'Service Provider'}
                 </button>
               ))}
             </div>
@@ -111,7 +112,7 @@ const Register = () => {
                     className={`account-type-btn ${form.account_type === at.value ? 'active' : ''}`}
                     onClick={() => setForm({ ...form, account_type: at.value })}
                   >
-                    <span className="at-icon">{at.icon}</span>
+                    <span className="at-icon"><at.Icon size={22} strokeWidth={1.5} /></span>
                     <span className="at-label">{at.label}</span>
                     <span className="at-desc">{at.desc}</span>
                   </button>
@@ -131,7 +132,7 @@ const Register = () => {
             </div>
           </div>
           <button type="submit" className="btn btn-primary w-full btn-lg" disabled={loading}>
-            {loading ? 'Creating Account...' : '🚀 Create Account'}
+            {loading ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
         <p className="auth-footer">Already have an account? <Link to="/login" className="text-primary-color">Sign in</Link></p>

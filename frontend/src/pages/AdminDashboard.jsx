@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import API from '../api/axios';
 import StatusBadge from '../components/StatusBadge';
@@ -14,12 +14,45 @@ const AdminDashboard = () => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState('');
+  // Chats
+  const [conversations,    setConversations]    = useState([]);
+  const [activeThread,     setActiveThread]     = useState(null);
+  const [threadMessages,   setThreadMessages]   = useState([]);
+  const [threadLoading,    setThreadLoading]    = useState(false);
+  const [chatSearch,       setChatSearch]       = useState('');
+  const threadEndRef = useRef(null);
+  // Booking chat modal
+  const [bookingChat, setBookingChat] = useState(null); // { booking, messages, loading }
 
   const fetchStats    = async () => { try { const r = await API.get('/admin/stats');    setStats(r.data);    } catch { toast.error('Failed to load stats'); } };
   const fetchUsers    = async () => { try { const r = await API.get('/admin/users');    setUsers(r.data);    } catch { toast.error('Failed to load users'); } };
   const fetchServices = async () => { try { const r = await API.get('/admin/services'); setServices(r.data); } catch { toast.error('Failed to load services'); } };
   const fetchBookings = async () => { try { const r = await API.get('/admin/bookings'); setBookings(r.data); } catch { toast.error('Failed to load bookings'); } };
   const fetchReviews  = async () => { try { const r = await API.get('/admin/reviews');  setReviews(r.data);  } catch { toast.error('Failed to load reviews'); } };
+  const fetchChats    = async () => { try { const r = await API.get('/admin/chats');    setConversations(r.data); } catch { toast.error('Failed to load conversations'); } };
+
+  const openThread = async (conv) => {
+    setActiveThread(conv);
+    setThreadLoading(true);
+    setThreadMessages([]);
+    try {
+      const r = await API.get(`/admin/chats/${conv.user_a_id}/${conv.user_b_id}`);
+      setThreadMessages(r.data);
+      setTimeout(() => threadEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    } catch { toast.error('Failed to load messages'); }
+    finally { setThreadLoading(false); }
+  };
+
+  const openBookingChat = async (booking) => {
+    setBookingChat({ booking, messages: [], loading: true });
+    try {
+      const r = await API.get(`/admin/chats/${booking.customer_id}/${booking.provider_id}`);
+      setBookingChat({ booking, messages: r.data, loading: false });
+    } catch {
+      toast.error('Failed to load chat');
+      setBookingChat(null);
+    }
+  };
 
   useEffect(() => { const load = async () => { setLoading(true); await fetchStats(); setLoading(false); }; load(); }, []);
   useEffect(() => {
@@ -27,6 +60,7 @@ const AdminDashboard = () => {
     if (tab === 'services') fetchServices();
     if (tab === 'bookings') fetchBookings();
     if (tab === 'reviews')  fetchReviews();
+    if (tab === 'chats')    fetchChats();
   }, [tab]);
 
   const handleToggleUser = async (id) => {
@@ -69,12 +103,18 @@ const AdminDashboard = () => {
   const categories = [...new Set(services.map(s => s.category))].sort();
   const filteredServices = categoryFilter ? services.filter(s => s.category === categoryFilter) : services;
 
+  const filteredConversations = conversations.filter(c =>
+    c.user_a_name.toLowerCase().includes(chatSearch.toLowerCase()) ||
+    c.user_b_name.toLowerCase().includes(chatSearch.toLowerCase())
+  );
+
   const TABS = [
     { key: 'overview', label: '📊 Overview' },
     { key: 'users',    label: '👥 Users' },
     { key: 'services', label: '🛠️ Services' },
     { key: 'bookings', label: '📅 Bookings' },
     { key: 'reviews',  label: '⭐ Reviews' },
+    { key: 'chats',    label: '💬 Chats' },
   ];
 
   return (
@@ -303,13 +343,20 @@ const AdminDashboard = () => {
                           <td style={{fontSize:'.8rem',color:'var(--text-secondary)',maxWidth:140}}>{b.location || <span style={{color:'var(--text-muted)'}}>—</span>}</td>
                           <td><StatusBadge status={b.status}/></td>
                           <td>
-                            {!['cancelled','completed'].includes(b.status) && (
+                            <div style={{display:'flex',gap:'var(--space-2)',flexWrap:'wrap'}}>
                               <button
-                                className="btn btn-danger btn-sm"
-                                onClick={() => handleAdminCancel(b.id)}
-                                title="Admin cancel this booking"
-                              >❌ Cancel</button>
-                            )}
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => openBookingChat(b)}
+                                title="View chat between customer & provider for this booking"
+                              >💬 Chat</button>
+                              {!['cancelled','completed'].includes(b.status) && (
+                                <button
+                                  className="btn btn-danger btn-sm"
+                                  onClick={() => handleAdminCancel(b.id)}
+                                  title="Admin cancel this booking"
+                                >❌ Cancel</button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -360,9 +407,270 @@ const AdminDashboard = () => {
                 {reviews.length === 0 && <div className="empty-state"><div className="empty-icon">⭐</div><p>No reviews yet</p></div>}
               </div>
             )}
+            {tab === 'chats' && (
+              <div className="adm-chat-layout">
+                {/* Left: conversation list */}
+                <div className="adm-chat-sidebar">
+                  <div className="adm-chat-sidebar-header">
+                    <h3>💬 All Conversations</h3>
+                    <span className="badge badge-primary">{conversations.length}</span>
+                  </div>
+                  <input
+                    className="input adm-chat-search"
+                    placeholder="Search by name..."
+                    value={chatSearch}
+                    onChange={e => setChatSearch(e.target.value)}
+                  />
+                  <div className="adm-conv-list">
+                    {filteredConversations.length === 0 ? (
+                      <div className="adm-conv-empty">No conversations found</div>
+                    ) : filteredConversations.map((conv, i) => {
+                      const isActive = activeThread &&
+                        activeThread.user_a_id === conv.user_a_id &&
+                        activeThread.user_b_id === conv.user_b_id;
+                      return (
+                        <button
+                          key={i}
+                          className={`adm-conv-item${isActive ? ' active' : ''}`}
+                          onClick={() => openThread(conv)}
+                        >
+                          <div className="adm-conv-avatars">
+                            <div className="adm-conv-av" style={{ background: `${ROLE_COLORS[conv.user_a_role]}30`, color: ROLE_COLORS[conv.user_a_role] }}>
+                              {conv.user_a_name[0]?.toUpperCase()}
+                            </div>
+                            <div className="adm-conv-av" style={{ background: `${ROLE_COLORS[conv.user_b_role]}30`, color: ROLE_COLORS[conv.user_b_role], marginLeft: -8 }}>
+                              {conv.user_b_name[0]?.toUpperCase()}
+                            </div>
+                          </div>
+                          <div className="adm-conv-info">
+                            <div className="adm-conv-names">
+                              <span>{conv.user_a_name}</span>
+                              <span style={{ color: 'var(--text-muted)', fontSize: '.75em' }}> &amp; </span>
+                              <span>{conv.user_b_name}</span>
+                            </div>
+                            <div className="adm-conv-roles">
+                              <span className="adm-role-badge" style={{ color: ROLE_COLORS[conv.user_a_role] }}>{conv.user_a_role}</span>
+                              <span style={{ color: 'var(--text-muted)', margin: '0 4px' }}>↔</span>
+                              <span className="adm-role-badge" style={{ color: ROLE_COLORS[conv.user_b_role] }}>{conv.user_b_role}</span>
+                            </div>
+                            <div className="adm-conv-preview">
+                              {conv.last_message ? `"${conv.last_message.slice(0, 42)}${conv.last_message.length > 42 ? '…' : ''}"` : 'No messages'}
+                            </div>
+                          </div>
+                          <div className="adm-conv-meta">
+                            <span className="adm-conv-count">{conv.message_count} msgs</span>
+                            <span className="adm-conv-time">
+                              {new Date(conv.last_message_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Right: thread viewer */}
+                <div className="adm-chat-thread">
+                  {!activeThread ? (
+                    <div className="adm-thread-empty">
+                      <div style={{ fontSize: '3rem' }}>💬</div>
+                      <p>Select a conversation to view messages</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="adm-thread-header">
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: '1rem' }}>
+                            {activeThread.user_a_name}
+                            <span style={{ color: 'var(--text-muted)', fontWeight: 400, margin: '0 8px' }}>↔</span>
+                            {activeThread.user_b_name}
+                          </div>
+                          <div style={{ fontSize: '.78rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                            <span style={{ color: ROLE_COLORS[activeThread.user_a_role] }}>{activeThread.user_a_role}</span>
+                            {' '}↔{' '}
+                            <span style={{ color: ROLE_COLORS[activeThread.user_b_role] }}>{activeThread.user_b_role}</span>
+                            {' · '}{threadMessages.length} messages
+                          </div>
+                        </div>
+                        <span className="badge badge-muted">🔒 Read-only</span>
+                      </div>
+
+                      <div className="adm-thread-messages">
+                        {threadLoading ? (
+                          <div className="spinner-container" style={{ minHeight: 200 }}><div className="spinner" /></div>
+                        ) : threadMessages.length === 0 ? (
+                          <div className="adm-thread-empty"><p>No messages in this conversation</p></div>
+                        ) : (
+                          threadMessages.map((msg) => {
+                            const isA = msg.sender_id === activeThread.user_a_id;
+                            const roleColor = ROLE_COLORS[msg.sender_role] || '#ccc';
+                            return (
+                              <div key={msg.id} className={`adm-msg-row ${isA ? 'row-left' : 'row-right'}`}>
+                                <div className="adm-msg-av" style={{ background: `${roleColor}25`, color: roleColor }}>
+                                  {msg.sender_name[0]?.toUpperCase()}
+                                </div>
+                                <div className="adm-msg-body">
+                                  <div className="adm-msg-meta">
+                                    <span style={{ color: roleColor, fontWeight: 700 }}>{msg.sender_name}</span>
+                                    <span className="adm-msg-role">{msg.sender_role}</span>
+                                    <span className="adm-msg-time">
+                                      {new Date(msg.created_at).toLocaleString()}
+                                    </span>
+                                    {msg.is_read && <span className="adm-msg-read">✓✓ Read</span>}
+                                  </div>
+                                  <div className="adm-msg-bubble" style={{ borderColor: `${roleColor}40` }}>
+                                    {msg.content}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                        <div ref={threadEndRef} />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
           </>
         )}
       </div>
+
+      {/* ── Booking Chat Modal ─────────────────────────────────────────────── */}
+      {bookingChat && (
+        <div className="bcm-overlay" onClick={() => setBookingChat(null)}>
+          <div className="bcm-modal" onClick={e => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="bcm-header">
+              <div className="bcm-header-left">
+                <span className="bcm-icon">💬</span>
+                <div>
+                  <div className="bcm-title">Booking Chat — {bookingChat.booking.service_title}</div>
+                  <div className="bcm-subtitle">
+                    <span style={{color:ROLE_COLORS.customer}}>👤 {bookingChat.booking.customer_name}</span>
+                    <span style={{color:'var(--text-muted)',margin:'0 6px'}}>↔</span>
+                    <span style={{color:ROLE_COLORS.provider}}>🔧 {bookingChat.booking.provider_name}</span>
+                    <span className="bcm-dot">·</span>
+                    <span style={{color:'var(--text-muted)'}}>{new Date(bookingChat.booking.booking_date).toLocaleDateString()}</span>
+                    <span className="bcm-dot">·</span>
+                    <StatusBadge status={bookingChat.booking.status} />
+                  </div>
+                </div>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:'var(--space-3)'}}>
+                <span className="badge badge-muted">🔒 Read-only</span>
+                <button className="bcm-close" onClick={() => setBookingChat(null)}>✕</button>
+              </div>
+            </div>
+
+            {/* Info bar */}
+            <div className="bcm-info-bar">
+              <span>📦 Booking #{bookingChat.booking.id}</span>
+              <span>📍 {bookingChat.booking.location || 'No location'}</span>
+              {bookingChat.booking.notes && <span>📝 {bookingChat.booking.notes}</span>}
+              <span>💬 {bookingChat.messages.length} messages</span>
+            </div>
+
+            {/* Messages */}
+            <div className="bcm-messages">
+              {bookingChat.loading ? (
+                <div className="spinner-container" style={{minHeight:200}}><div className="spinner"/></div>
+              ) : bookingChat.messages.length === 0 ? (
+                <div className="bcm-no-msgs">
+                  <div style={{fontSize:'2.5rem'}}>💭</div>
+                  <p>No messages between these users yet.</p>
+                  <p style={{fontSize:'.8rem',color:'var(--text-muted)'}}>They may not have communicated through the platform chat.</p>
+                </div>
+              ) : (
+                bookingChat.messages.map(msg => {
+                  const isCustomer = msg.sender_id === bookingChat.booking.customer_id;
+                  const roleColor  = isCustomer ? ROLE_COLORS.customer : ROLE_COLORS.provider;
+                  return (
+                    <div key={msg.id} className={`adm-msg-row ${isCustomer ? 'row-left' : 'row-right'}`}>
+                      <div className="adm-msg-av" style={{background:`${roleColor}22`,color:roleColor}}>
+                        {msg.sender_name[0]?.toUpperCase()}
+                      </div>
+                      <div className="adm-msg-body">
+                        <div className="adm-msg-meta">
+                          <span style={{color:roleColor,fontWeight:700}}>{msg.sender_name}</span>
+                          <span className="adm-msg-role">{msg.sender_role}</span>
+                          <span className="adm-msg-time">{new Date(msg.created_at).toLocaleString()}</span>
+                          {msg.is_read && <span className="adm-msg-read">✓✓ Read</span>}
+                        </div>
+                        <div className="adm-msg-bubble" style={{borderColor:`${roleColor}40`}}>
+                          {msg.content}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        /* ── Admin Chat Layout ────────────────────────────────────── */
+        .adm-chat-layout { display:grid; grid-template-columns:340px 1fr; gap:var(--space-4); height:680px; }
+        /* Sidebar */
+        .adm-chat-sidebar { display:flex; flex-direction:column; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-xl); overflow:hidden; }
+        .adm-chat-sidebar-header { display:flex; align-items:center; justify-content:space-between; padding:var(--space-4); border-bottom:1px solid var(--border); }
+        .adm-chat-sidebar-header h3 { font-size:.95rem; font-weight:700; margin:0; }
+        .adm-chat-search { border-radius:0; border-left:none; border-right:none; border-top:none; }
+        .adm-conv-list { flex:1; overflow-y:auto; }
+        .adm-conv-empty { padding:var(--space-6); text-align:center; color:var(--text-muted); font-size:.85rem; }
+        .adm-conv-item { width:100%; display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) var(--space-4); border:none; background:transparent; cursor:pointer; text-align:left; border-bottom:1px solid var(--border); transition:var(--transition); }
+        .adm-conv-item:hover { background:rgba(14,165,233,.06); }
+        .adm-conv-item.active { background:rgba(108,99,255,.10); border-left:3px solid var(--primary); }
+        .adm-conv-avatars { display:flex; flex-shrink:0; }
+        .adm-conv-av { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:.78rem; border:2px solid var(--bg-card); }
+        .adm-conv-info { flex:1; min-width:0; }
+        .adm-conv-names { font-size:.82rem; font-weight:700; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .adm-conv-roles { display:flex; align-items:center; margin-top:1px; }
+        .adm-role-badge { font-size:.68rem; font-weight:700; text-transform:uppercase; }
+        .adm-conv-preview { font-size:.72rem; color:var(--text-muted); font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
+        .adm-conv-meta { display:flex; flex-direction:column; align-items:flex-end; gap:2px; flex-shrink:0; }
+        .adm-conv-count { font-size:.68rem; background:rgba(108,99,255,.12); color:var(--primary); border-radius:10px; padding:1px 6px; font-weight:700; }
+        .adm-conv-time { font-size:.65rem; color:var(--text-muted); }
+        /* Thread */
+        .adm-chat-thread { display:flex; flex-direction:column; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-xl); overflow:hidden; }
+        .adm-thread-header { padding:var(--space-4) var(--space-5); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-shrink:0; background:rgba(108,99,255,.04); }
+        .adm-thread-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--space-3); color:var(--text-muted); }
+        .adm-thread-messages { flex:1; overflow-y:auto; padding:var(--space-5); display:flex; flex-direction:column; gap:var(--space-4); }
+        .adm-msg-row { display:flex; gap:var(--space-3); align-items:flex-start; }
+        .adm-msg-row.row-right { flex-direction:row-reverse; }
+        .adm-msg-av { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:.8rem; flex-shrink:0; }
+        .adm-msg-body { display:flex; flex-direction:column; gap:4px; max-width:72%; }
+        .row-right .adm-msg-body { align-items:flex-end; }
+        .adm-msg-meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+        .row-right .adm-msg-meta { flex-direction:row-reverse; }
+        .adm-msg-role { font-size:.65rem; text-transform:uppercase; color:var(--text-muted); background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:4px; padding:1px 4px; }
+        .adm-msg-time { font-size:.68rem; color:var(--text-muted); }
+        .adm-msg-read { font-size:.65rem; color:var(--success); }
+        .adm-msg-bubble { background:rgba(255,255,255,.06); border:1px solid; border-radius:var(--radius-lg); padding:var(--space-3) var(--space-4); font-size:.875rem; line-height:1.5; word-break:break-word; }
+        .row-right .adm-msg-bubble { background:rgba(108,99,255,.12); }
+        @media(max-width:768px) { .adm-chat-layout { grid-template-columns:1fr; height:auto; } .adm-chat-thread { min-height:400px; } }
+        /* ── Booking Chat Modal ───────────────────────────── */
+        .bcm-overlay { position:fixed; inset:0; background:rgba(0,0,0,.65); backdrop-filter:blur(6px); z-index:1000; display:flex; align-items:center; justify-content:center; padding:var(--space-4); animation:fadeIn .2s ease; }
+        .bcm-modal { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-xl); width:100%; max-width:760px; max-height:88vh; display:flex; flex-direction:column; box-shadow:0 24px 80px rgba(0,0,0,.5); animation:slideUp .25s ease; overflow:hidden; }
+        .bcm-header { display:flex; align-items:flex-start; justify-content:space-between; padding:var(--space-5) var(--space-6); border-bottom:1px solid var(--border); background:rgba(108,99,255,.06); flex-shrink:0; gap:var(--space-4); }
+        .bcm-header-left { display:flex; align-items:flex-start; gap:var(--space-4); }
+        .bcm-icon { font-size:1.6rem; line-height:1; margin-top:2px; }
+        .bcm-title { font-size:1rem; font-weight:800; color:var(--text-primary); margin-bottom:4px; }
+        .bcm-subtitle { display:flex; align-items:center; flex-wrap:wrap; gap:4px; font-size:.8rem; }
+        .bcm-dot { color:var(--text-muted); margin:0 2px; }
+        .bcm-close { background:none; border:none; cursor:pointer; font-size:1.2rem; color:var(--text-muted); width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; transition:var(--transition); flex-shrink:0; }
+        .bcm-close:hover { background:rgba(255,71,87,.15); color:#FF4757; }
+        .bcm-info-bar { display:flex; align-items:center; gap:var(--space-4); padding:var(--space-3) var(--space-6); background:rgba(0,0,0,.12); border-bottom:1px solid var(--border); font-size:.75rem; color:var(--text-muted); font-weight:600; flex-shrink:0; flex-wrap:wrap; }
+        .bcm-messages { flex:1; overflow-y:auto; padding:var(--space-5) var(--space-6); display:flex; flex-direction:column; gap:var(--space-4); }
+        .bcm-no-msgs { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--space-3); color:var(--text-muted); text-align:center; padding:var(--space-10); }
+        @media(max-width:600px) { .bcm-modal { max-height:95vh; } .bcm-header { padding:var(--space-4); } .bcm-messages { padding:var(--space-4); } }
+      `}</style>
     </div>
   );
 };

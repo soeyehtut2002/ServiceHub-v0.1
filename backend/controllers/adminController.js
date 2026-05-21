@@ -173,10 +173,11 @@ const getAllBookings = async (req, res) => {
   try {
     const result = await db.query(
       `SELECT b.*,
-         s.title AS service_title,
+         s.title       AS service_title,
          s.price,
-         cu.name AS customer_name,
-         pu.name AS provider_name
+         s.provider_id,
+         cu.name       AS customer_name,
+         pu.name       AS provider_name
        FROM bookings b
        JOIN services s ON b.service_id = s.id
        JOIN users cu ON b.customer_id = cu.id
@@ -292,6 +293,71 @@ const getCancellations = async (req, res) => {
   }
 };
 
+// ─── @route  GET /api/admin/chats ────────────────────────────────────────────
+// Lists all unique user-to-user conversations on the platform
+const getAdminConversations = async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT
+         LEAST(m.sender_id, m.receiver_id)    AS user_a_id,
+         GREATEST(m.sender_id, m.receiver_id) AS user_b_id,
+         ua.name       AS user_a_name,
+         ua.role       AS user_a_role,
+         ua.avatar_url AS user_a_avatar,
+         ub.name       AS user_b_name,
+         ub.role       AS user_b_role,
+         ub.avatar_url AS user_b_avatar,
+         COUNT(m.id)::int  AS message_count,
+         MAX(m.created_at) AS last_message_at,
+         (SELECT m2.content FROM messages m2
+          WHERE (m2.sender_id   = LEAST(m.sender_id, m.receiver_id)
+             AND m2.receiver_id = GREATEST(m.sender_id, m.receiver_id))
+             OR (m2.sender_id   = GREATEST(m.sender_id, m.receiver_id)
+             AND m2.receiver_id = LEAST(m.sender_id, m.receiver_id))
+          ORDER BY m2.created_at DESC LIMIT 1
+         ) AS last_message
+       FROM messages m
+       JOIN users ua ON ua.id = LEAST(m.sender_id, m.receiver_id)
+       JOIN users ub ON ub.id = GREATEST(m.sender_id, m.receiver_id)
+       GROUP BY
+         LEAST(m.sender_id, m.receiver_id),
+         GREATEST(m.sender_id, m.receiver_id),
+         ua.name, ua.role, ua.avatar_url,
+         ub.name, ub.role, ub.avatar_url
+       ORDER BY last_message_at DESC`
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('getAdminConversations error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// ─── @route  GET /api/admin/chats/:userAId/:userBId ──────────────────────────
+// Full message thread between two specific users (admin read-only)
+const getAdminConversationThread = async (req, res) => {
+  try {
+    const { userAId, userBId } = req.params;
+    const result = await db.query(
+      `SELECT
+         m.*,
+         u.name       AS sender_name,
+         u.role       AS sender_role,
+         u.avatar_url AS sender_avatar
+       FROM messages m
+       JOIN users u ON m.sender_id = u.id
+       WHERE (m.sender_id = $1 AND m.receiver_id = $2)
+          OR (m.sender_id = $2 AND m.receiver_id = $1)
+       ORDER BY m.created_at ASC`,
+      [parseInt(userAId), parseInt(userBId)]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('getAdminConversationThread error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 module.exports = {
   getStats,
   getAllUsers,
@@ -305,5 +371,7 @@ module.exports = {
   flagReview,
   adminDeleteReview,
   getCancellations,
+  getAdminConversations,
+  getAdminConversationThread,
 };
 

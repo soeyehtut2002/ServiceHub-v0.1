@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import API from '../api/axios';
 import toast from 'react-hot-toast';
+import { Lock, Eye, EyeOff } from 'lucide-react';
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
@@ -41,7 +42,7 @@ const ResetPassword = () => {
       <div style={{ width: '100%', maxWidth: 420, padding: 'var(--space-6)' }}>
         <div className="card" style={{ padding: 'var(--space-8)' }}>
           <div style={{ textAlign: 'center', marginBottom: 'var(--space-8)' }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: 'var(--space-3)' }}>🔒</div>
+            <div style={{ display:'flex', justifyContent:'center', marginBottom:'var(--space-3)', color:'var(--primary)', opacity:0.85 }}><Lock size={42} strokeWidth={1.5} /></div>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 'var(--space-2)' }}>Reset Password</h1>
             <p className="text-muted" style={{ fontSize: '0.875rem' }}>Enter your new password below</p>
           </div>
@@ -62,7 +63,7 @@ const ResetPassword = () => {
                 />
                 <button type="button" onClick={() => setShowPass(v => !v)}
                   style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1rem' }}>
-                  {showPass ? '🙈' : '👁️'}
+                  {showPass ? <EyeOff size={18} strokeWidth={2} /> : <Eye size={18} strokeWidth={2} />}
                 </button>
               </div>
             </div>
@@ -86,7 +87,7 @@ const ResetPassword = () => {
             )}
 
             <button type="submit" className="btn btn-primary w-full" disabled={loading}>
-              {loading ? 'Resetting...' : '✅ Reset Password'}
+              {loading ? 'Resetting...' : 'Reset Password'}
             </button>
 
             <p style={{ textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-muted)' }}>

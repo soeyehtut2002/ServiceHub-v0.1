@@ -5,6 +5,7 @@ import { useSocket } from '../context/SocketContext';
 import SearchAutocomplete from './SearchAutocomplete';
 import NotificationBell from './NotificationBell';
 import toast from 'react-hot-toast';
+import { LayoutDashboard, User, MessageSquare, Plus, LogOut, ChevronDown, ChevronUp } from 'lucide-react';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -100,7 +101,7 @@ const Navbar = () => {
                   {getInitials(user.name)}
                 </div>
                 <span className="user-name hide-mobile">{user.name.split(' ')[0]}</span>
-                <span className="chevron">{menuOpen ? '▲' : '▼'}</span>
+                <span className="chevron">{menuOpen ? <ChevronUp size={13} strokeWidth={2.5}/> : <ChevronDown size={13} strokeWidth={2.5}/>}</span>
               </button>
               {menuOpen && (
                 <div className="dropdown-menu">
@@ -113,22 +114,22 @@ const Navbar = () => {
                   </div>
                   <div className="dropdown-divider" />
                   <Link to={getDashboardLink()} className="dropdown-item" onClick={() => setMenuOpen(false)}>
-                    📊 Dashboard
+                    <LayoutDashboard size={15} strokeWidth={2}/> Dashboard
                   </Link>
                   <Link to="/profile" className="dropdown-item" onClick={() => setMenuOpen(false)}>
-                    👤 My Profile
+                    <User size={15} strokeWidth={2}/> My Profile
                   </Link>
                   <Link to="/chat" className="dropdown-item" onClick={() => setMenuOpen(false)}>
-                    💬 Messages {unreadCount > 0 && <span style={{background:'var(--primary)',color:'#fff',borderRadius:'10px',fontSize:'.7rem',padding:'1px 6px',marginLeft:'auto'}}>{unreadCount}</span>}
+                    <MessageSquare size={15} strokeWidth={2}/> Messages {unreadCount > 0 && <span style={{background:'var(--primary)',color:'#fff',borderRadius:'10px',fontSize:'.7rem',padding:'1px 6px',marginLeft:'auto'}}>{unreadCount}</span>}
                   </Link>
                   {user.role === 'provider' && (
                     <Link to="/dashboard/provider" className="dropdown-item" onClick={() => setMenuOpen(false)}>
-                      ➕ My Services
+                      <Plus size={15} strokeWidth={2}/> My Services
                     </Link>
                   )}
                   <div className="dropdown-divider" />
                   <button className="dropdown-item danger" onClick={handleLogout}>
-                    🚪 Sign Out
+                    <LogOut size={15} strokeWidth={2}/> Sign Out
                   </button>
                 </div>
               )}
@@ -236,7 +237,7 @@ const Navbar = () => {
         .user-trigger:hover { border-color: var(--primary); background: var(--bg-surface); box-shadow: 0 0 0 3px var(--primary-glow); }
         .avatar-sm { width: 30px; height: 30px; font-size: 0.72rem; }
         .user-name { font-size: 0.875rem; font-weight: 600; color: var(--text-primary); }
-        .chevron { font-size: 0.6rem; color: var(--text-muted); }
+        .chevron { display:flex; align-items:center; color: var(--text-muted); }
         .dropdown-menu {
           position: absolute; top: calc(100% + 8px); right: 0; width: 230px;
           background: #fff; border: 1.5px solid var(--border); border-radius: var(--radius-lg);

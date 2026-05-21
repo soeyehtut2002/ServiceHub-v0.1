@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../api/axios';
+import { Search, Wrench, Star } from 'lucide-react';
 
 const SearchAutocomplete = ({ placeholder = 'Search services...', onClose }) => {
   const [query, setQuery] = useState('');
@@ -13,7 +14,6 @@ const SearchAutocomplete = ({ placeholder = 'Search services...', onClose }) => 
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
 
-  // Close on outside click
   useEffect(() => {
     const handler = (e) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
@@ -70,7 +70,9 @@ const SearchAutocomplete = ({ placeholder = 'Search services...', onClose }) => 
   return (
     <div ref={wrapperRef} style={{ position: 'relative', width: '100%' }}>
       <form onSubmit={handleSubmit} style={{ position: 'relative' }}>
-        <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', pointerEvents: 'none', opacity: 0.5 }}>🔍</span>
+        <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', pointerEvents: 'none', color: 'var(--text-muted)', opacity: 0.6 }}>
+          <Search size={15} strokeWidth={2} />
+        </span>
         <input
           ref={inputRef}
           type="text"
@@ -140,7 +142,9 @@ const SearchAutocomplete = ({ placeholder = 'Search services...', onClose }) => 
               {s.image_url ? (
                 <img src={`http://localhost:5000${s.image_url}`} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
               ) : (
-                <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(0,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>🔧</div>
+                <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(0,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--primary)' }}>
+                  <Wrench size={16} strokeWidth={2} />
+                </div>
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title}</div>
@@ -151,7 +155,10 @@ const SearchAutocomplete = ({ placeholder = 'Search services...', onClose }) => 
                 </div>
               </div>
               {parseFloat(s.avg_rating) > 0 && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--warning)', flexShrink: 0 }}>⭐ {parseFloat(s.avg_rating).toFixed(1)}</span>
+                <span style={{ fontSize: '0.75rem', color: '#F59E0B', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <Star size={11} fill="#F59E0B" strokeWidth={0} />
+                  {parseFloat(s.avg_rating).toFixed(1)}
+                </span>
               )}
             </button>
           ))}

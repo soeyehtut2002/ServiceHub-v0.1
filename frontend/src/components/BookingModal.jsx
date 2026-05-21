@@ -3,6 +3,7 @@ import API from '../api/axios';
 import toast from 'react-hot-toast';
 import { useCurrency } from '../context/CurrencyContext';
 import { SUPPORTED_CURRENCIES, getCurrencyMeta, formatCurrency, convertAmount, buildConversionLabel } from '../utils/currency';
+import { Calendar, X, CreditCard, ArrowLeftRight, Check, Clock, MapPin, CheckCircle } from 'lucide-react';
 
 const BookingModal = ({ service, onClose, onBooked }) => {
   const { rates, preferredCurrency } = useCurrency();
@@ -108,7 +109,7 @@ const BookingModal = ({ service, onClose, onBooked }) => {
         time_slot_id:     time_slot_id || undefined,
         payment_currency: paymentCurrency,
       });
-      toast.success('Booking confirmed! 🎉');
+      toast.success('Booking confirmed!');
       if (onBooked) onBooked();
       onClose();
     } catch (err) {
@@ -126,8 +127,8 @@ const BookingModal = ({ service, onClose, onBooked }) => {
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content bm-content">
         <div className="modal-header">
-          <h3 className="modal-title">📅 Book Service</h3>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <h3 className="modal-title" style={{display:'flex',alignItems:'center',gap:8}}><Calendar size={17} strokeWidth={2}/>Book Service</h3>
+          <button className="modal-close" onClick={onClose}><X size={16} strokeWidth={2.5}/></button>
         </div>
 
         {/* Service Summary */}
@@ -144,7 +145,7 @@ const BookingModal = ({ service, onClose, onBooked }) => {
         {/* ── Currency Selection + Conversion Preview ──────────────────── */}
         <div className="bm-currency-box">
           <div className="bm-currency-row">
-            <label className="form-label" style={{ margin: 0 }}>💳 Pay in</label>
+            <label className="form-label" style={{ margin: 0, display:'flex', alignItems:'center', gap:6 }}><CreditCard size={14} strokeWidth={2}/>Pay in</label>
             <div className="bm-cur-pills">
               {SUPPORTED_CURRENCIES.map(cur => (
                 <button
@@ -162,13 +163,13 @@ const BookingModal = ({ service, onClose, onBooked }) => {
 
           {conversionLabel ? (
             <div className="bm-conversion-line">
-              <span className="bm-conversion-icon">💱</span>
+              <span className="bm-conversion-icon" style={{display:'flex',alignItems:'center'}}><ArrowLeftRight size={15} strokeWidth={2}/></span>
               <span className="bm-conversion-text">{conversionLabel}</span>
               <span className="bm-rate-chip">rate: {exchangeRate}</span>
             </div>
           ) : (
             <div className="bm-conversion-line bm-same-currency">
-              <span className="bm-conversion-icon">✓</span>
+              <span className="bm-conversion-icon" style={{display:'flex',alignItems:'center',color:'var(--success)'}}><Check size={15} strokeWidth={2.5}/></span>
               <span className="bm-conversion-text">Paying in service currency</span>
             </div>
           )}
@@ -186,7 +187,7 @@ const BookingModal = ({ service, onClose, onBooked }) => {
           ) : hasSlots ? (
             <div className="form-group">
               <div className="slot-header">
-                <label className="form-label">🕐 Available Time Slots</label>
+                <label className="form-label" style={{display:'flex',alignItems:'center',gap:6}}><Clock size={14} strokeWidth={2}/>Available Time Slots</label>
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm"
@@ -281,7 +282,7 @@ const BookingModal = ({ service, onClose, onBooked }) => {
           )}
 
           <div className="form-group">
-            <label className="form-label">📍 Service Location / Address</label>
+            <label className="form-label" style={{display:'flex',alignItems:'center',gap:6}}><MapPin size={14} strokeWidth={2}/>Service Location / Address</label>
             <textarea
               className="textarea"
               placeholder="Enter your address or where you need the service..."
@@ -305,7 +306,7 @@ const BookingModal = ({ service, onClose, onBooked }) => {
           <div className="booking-actions">
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Booking...' : `✅ Confirm & Pay ${payMeta.flag} ${paymentCurrency}`}
+              {loading ? 'Booking...' : <span style={{display:'flex',alignItems:'center',gap:6}}><CheckCircle size={15} strokeWidth={2}/>Confirm &amp; Pay {payMeta.flag} {paymentCurrency}</span>}
             </button>
           </div>
         </form>
@@ -324,7 +325,7 @@ const BookingModal = ({ service, onClose, onBooked }) => {
           .bm-cur-pill:hover:not(.active) { border-color:var(--primary); color:var(--primary-dark); background:rgba(14,165,233,.06); }
 
           .bm-conversion-line { display:flex; align-items:center; gap:8px; padding:8px 12px; background:rgba(255,255,255,.55); border-radius:var(--radius-md); border:1px solid rgba(108,99,255,.15); }
-          .bm-conversion-icon { font-size:1rem; flex-shrink:0; }
+          .bm-conversion-icon { display:flex; align-items:center; flex-shrink:0; }
           .bm-conversion-text { font-size:.88rem; font-weight:700; color:var(--text-primary); flex:1; }
           .bm-rate-chip { font-size:.7rem; background:rgba(108,99,255,.12); color:#6C63FF; border-radius:var(--radius-full); padding:2px 8px; font-weight:600; white-space:nowrap; }
           .bm-same-currency .bm-conversion-text { color:var(--text-muted); font-weight:400; }

@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import API from '../api/axios';
 import StarRating from './StarRating';
 import toast from 'react-hot-toast';
+import { Pencil, FileEdit, X, Save, Star } from 'lucide-react';
 
 const BASE_URL = 'http://localhost:5000';
 
@@ -67,12 +68,12 @@ const ReviewForm = ({ serviceId, bookingId, existingReview, onReviewSubmitted })
         await API.put(`/reviews/${existingReview.id}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
-        toast.success('Review updated! ✏️');
+        toast.success('Review updated!');
       } else {
         await API.post('/reviews', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
-        toast.success('Review submitted! Thank you 🌟');
+        toast.success('Review submitted! Thank you.');
       }
       if (onReviewSubmitted) onReviewSubmitted();
     } catch (err) {
@@ -86,7 +87,7 @@ const ReviewForm = ({ serviceId, bookingId, existingReview, onReviewSubmitted })
 
   return (
     <form onSubmit={handleSubmit} className="review-form">
-      <h4 className="review-form-title">{isEdit ? '✏️ Edit Your Review' : '✍️ Write a Review'}</h4>
+      <h4 className="review-form-title" style={{display:'flex',alignItems:'center',gap:6}}>{isEdit ? <><Pencil size={15} strokeWidth={2}/> Edit Your Review</> : <><FileEdit size={15} strokeWidth={2}/> Write a Review</>}</h4>
 
       <div className="form-group">
         <label className="form-label">Your Rating</label>
@@ -113,14 +114,14 @@ const ReviewForm = ({ serviceId, bookingId, existingReview, onReviewSubmitted })
           {keptImages.map((url, i) => (
             <div key={`kept-${i}`} className="review-img-thumb">
               <img src={url.startsWith('/uploads') ? `${BASE_URL}${url}` : url} alt="" />
-              <button type="button" className="img-remove" onClick={() => removeKept(i)}>✕</button>
+              <button type="button" className="img-remove" onClick={() => removeKept(i)}><X size={9} strokeWidth={3}/></button>
             </div>
           ))}
           {/* New previews */}
           {previews.map((url, i) => (
             <div key={`new-${i}`} className="review-img-thumb new">
               <img src={url} alt="" />
-              <button type="button" className="img-remove" onClick={() => removeNew(i)}>✕</button>
+              <button type="button" className="img-remove" onClick={() => removeNew(i)}><X size={9} strokeWidth={3}/></button>
             </div>
           ))}
           {/* Add button */}
@@ -143,7 +144,10 @@ const ReviewForm = ({ serviceId, bookingId, existingReview, onReviewSubmitted })
       </div>
 
       <button type="submit" className="btn btn-primary w-full" disabled={loading}>
-        {loading ? 'Submitting...' : isEdit ? '💾 Save Changes' : '⭐ Submit Review'}
+        {loading ? 'Submitting...' : isEdit
+          ? <span style={{display:'flex',alignItems:'center',gap:6,justifyContent:'center'}}><Save size={15} strokeWidth={2}/>Save Changes</span>
+          : <span style={{display:'flex',alignItems:'center',gap:6,justifyContent:'center'}}><Star size={15} strokeWidth={2}/>Submit Review</span>
+        }
       </button>
 
       <style>{`

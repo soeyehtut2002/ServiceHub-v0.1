@@ -37,7 +37,7 @@ const Login = () => {
       <div className="auth-glow" />
       <div className="auth-card">
         <div className="auth-header">
-          <Link to="/" className="auth-logo">⚡ ServiceHub</Link>
+          <Link to="/" className="auth-logo">ServiceHub</Link>
           <h1 className="auth-title">Welcome Back</h1>
           <p className="auth-subtitle">Sign in to your account</p>
         </div>
@@ -55,14 +55,14 @@ const Login = () => {
             <input name="password" type="password" className="input" placeholder="Your password" value={form.password} onChange={handleChange} required />
           </div>
           <button type="submit" className="btn btn-primary w-full btn-lg" disabled={loading}>
-            {loading ? 'Signing in...' : '🔐 Sign In'}
+            {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
         <div className="auth-demo">
           <p className="demo-title">Demo Credentials</p>
           <div className="demo-creds">
             <div className="demo-item" onClick={() => setForm({ email: 'admin@servicehub.com', password: 'admin123' })}>
-              <span className="demo-role">👑 Admin</span>
+              <span className="demo-role">Admin</span>
               <span className="demo-hint">click to fill</span>
             </div>
           </div>

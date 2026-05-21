@@ -8,6 +8,7 @@ import StarRating from '../components/StarRating';
 import BookingModal from '../components/BookingModal';
 import ReviewForm from '../components/ReviewForm';
 import toast from 'react-hot-toast';
+import { ZoomIn, X, MapPin, ShieldCheck, Camera, ClipboardList, Star, DollarSign, Tag, Clock, Users, MessageSquare, ArrowLeftRight, Lock, Calendar, Phone } from 'lucide-react';
 
 const BASE = 'http://localhost:5000';
 const src = (url, fallbackCat) => {
@@ -76,7 +77,7 @@ const ServiceGallery = ({ images, title }) => {
               <div className="sg-counter">{active + 1} / {images.length}</div>
             </>
           )}
-          <div className="sg-expand-hint">🔍 Click to expand</div>
+          <div className="sg-expand-hint" style={{display:'flex',alignItems:'center',gap:4}}><ZoomIn size={12} strokeWidth={2}/>Click to expand</div>
         </div>
 
         {/* Thumbnail strip — only when >1 image */}
@@ -104,7 +105,7 @@ const ServiceGallery = ({ images, title }) => {
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
         >
-          <button className="sg-lb-close" onClick={() => setLightbox(false)}>✕</button>
+          <button className="sg-lb-close" onClick={() => setLightbox(false)}><X size={18} strokeWidth={2.5}/></button>
           {!single && (
             <>
               <button className="sg-lb-nav sg-lb-prev" onClick={e => { e.stopPropagation(); prev(); }}>‹</button>
@@ -318,10 +319,10 @@ const ServiceDetail = () => {
             <span className="detail-rating-val">{parseFloat(service.avg_rating).toFixed(1)}</span>
             <span className="detail-reviews">({service.review_count} reviews)</span>
             <span className="detail-sep">•</span>
-            <span>📍 {service.location}</span>
-            {service.provider_verified && <span className="verified-badge">✓ Verified Provider</span>}
+            <span style={{display:'flex',alignItems:'center',gap:4}}><MapPin size={13} strokeWidth={2}/>{service.location}</span>
+            {service.provider_verified && <span className="verified-badge" style={{display:'inline-flex',alignItems:'center',gap:4}}><ShieldCheck size={12} strokeWidth={2.5}/>Verified Provider</span>}
             {gallery.length > 1 && (
-              <span className="detail-photo-badge">📸 {gallery.length} photos</span>
+              <span className="detail-photo-badge" style={{display:'inline-flex',alignItems:'center',gap:4}}><Camera size={12} strokeWidth={2}/>{gallery.length} photos</span>
             )}
           </div>
         </div>
@@ -342,7 +343,10 @@ const ServiceDetail = () => {
           <div className="tabs mb-6">
             {['about','reviews'].map(t => (
               <button key={t} className={`tab-btn ${tab===t?'active':''}`} onClick={() => setTab(t)}>
-                {t === 'about' ? '📋 About' : `⭐ Reviews (${service.review_count})`}
+                {t === 'about'
+                  ? <span style={{display:'inline-flex',alignItems:'center',gap:6}}><ClipboardList size={14} strokeWidth={2}/>About</span>
+                  : <span style={{display:'inline-flex',alignItems:'center',gap:6}}><Star size={14} strokeWidth={2}/>Reviews ({service.review_count})</span>
+                }
               </button>
             ))}
           </div>
@@ -353,12 +357,12 @@ const ServiceDetail = () => {
               <p style={{color:'var(--text-secondary)',lineHeight:1.8}}>{service.description}</p>
               <div className="divider"/>
               <div className="detail-info-grid">
-                <div className="detail-info-item"><span className="detail-info-icon">💰</span><div><p className="detail-info-label">Price</p><p className="detail-info-value" style={{color:'var(--success)'}}>{displayMeta.symbol}{displayPrice.toLocaleString('en-US',{maximumFractionDigits:displayCurrency==='USD'?2:0})} <span style={{fontSize:'.8em',color:'var(--text-muted)'}}>{displayCurrency}</span></p>{convLabel&&<p style={{fontSize:'.78rem',color:'var(--text-muted)',marginTop:2}}>{convLabel}</p>}</div></div>
-                <div className="detail-info-item"><span className="detail-info-icon">📍</span><div><p className="detail-info-label">Location</p><p className="detail-info-value">{service.location}</p></div></div>
-                <div className="detail-info-item"><span className="detail-info-icon">🏷️</span><div><p className="detail-info-label">Category</p><p className="detail-info-value">{service.category}</p></div></div>
-                <div className="detail-info-item"><span className="detail-info-icon">⏱️</span><div><p className="detail-info-label">Duration</p><p className="detail-info-value">{service.duration_hours || 1} hour{(service.duration_hours||1)>1?'s':''} per job</p></div></div>
+                <div className="detail-info-item"><span className="detail-info-icon"><DollarSign size={20} strokeWidth={1.8}/></span><div><p className="detail-info-label">Price</p><p className="detail-info-value" style={{color:'var(--success)'}}>{displayMeta.symbol}{displayPrice.toLocaleString('en-US',{maximumFractionDigits:displayCurrency==='USD'?2:0})} <span style={{fontSize:'.8em',color:'var(--text-muted)'}}>{displayCurrency}</span></p>{convLabel&&<p style={{fontSize:'.78rem',color:'var(--text-muted)',marginTop:2}}>{convLabel}</p>}</div></div>
+                <div className="detail-info-item"><span className="detail-info-icon"><MapPin size={20} strokeWidth={1.8}/></span><div><p className="detail-info-label">Location</p><p className="detail-info-value">{service.location}</p></div></div>
+                <div className="detail-info-item"><span className="detail-info-icon"><Tag size={20} strokeWidth={1.8}/></span><div><p className="detail-info-label">Category</p><p className="detail-info-value">{service.category}</p></div></div>
+                <div className="detail-info-item"><span className="detail-info-icon"><Clock size={20} strokeWidth={1.8}/></span><div><p className="detail-info-label">Duration</p><p className="detail-info-value">{service.duration_hours || 1} hour{(service.duration_hours||1)>1?'s':''} per job</p></div></div>
                 {(service.team_count || 1) > 1 && (
-                  <div className="detail-info-item"><span className="detail-info-icon">👥</span><div><p className="detail-info-label">Capacity</p><p className="detail-info-value">{service.team_count} teams — up to {service.team_count} bookings per slot</p></div></div>
+                  <div className="detail-info-item"><span className="detail-info-icon"><Users size={20} strokeWidth={1.8}/></span><div><p className="detail-info-label">Capacity</p><p className="detail-info-value">{service.team_count} teams — up to {service.team_count} bookings per slot</p></div></div>
                 )}
               </div>
             </div>
@@ -372,7 +376,7 @@ const ServiceDetail = () => {
                 />
               )}
               {reviews.length === 0 ? (
-                <div className="empty-state"><div className="empty-icon">💬</div><p>No reviews yet. Be the first!</p></div>
+                <div className="empty-state"><div className="empty-icon" style={{display:'flex',justifyContent:'center',opacity:0.4}}><MessageSquare size={40} strokeWidth={1.5}/></div><p>No reviews yet. Be the first!</p></div>
               ) : reviews.map((r) => (
                 <div key={r.id} className="card review-card">
                   <div className="review-header">
@@ -434,9 +438,7 @@ const ServiceDetail = () => {
 
             {/* Conversion label shown when currency differs from native */}
             {convLabel && (
-              <div className="booking-converted">
-                💱 {convLabel}
-              </div>
+                <div className="booking-converted" style={{display:'flex',alignItems:'center',gap:6}}><ArrowLeftRight size={14} strokeWidth={2}/>{convLabel}</div>
             )}
             <div className="divider"/>
             <Link
@@ -451,8 +453,8 @@ const ServiceDetail = () => {
                 }
                 <div style={{flex:1}}>
                   <p className="provider-name">{service.provider_name}</p>
-                  <p className="provider-label">{service.provider_verified ? '✓ Verified Provider' : 'Service Provider'}</p>
-                  {service.provider_location && <p style={{fontSize:'.78rem',color:'var(--text-muted)',marginTop:2}}>📍 {service.provider_location}</p>}
+                  <p className="provider-label">{service.provider_verified ? <span style={{display:'inline-flex',alignItems:'center',gap:4}}><ShieldCheck size={11} strokeWidth={2.5}/>Verified Provider</span> : 'Service Provider'}</p>
+                  {service.provider_location && <p style={{fontSize:'.78rem',color:'var(--text-muted)',marginTop:2,display:'flex',alignItems:'center',gap:4}}><MapPin size={11} strokeWidth={2}/>{service.provider_location}</p>}
                 </div>
                 <span className="provider-arrow">→</span>
               </div>
@@ -461,16 +463,16 @@ const ServiceDetail = () => {
 
             <div className="divider"/>
             {!user ? (
-              <Link to="/login" className="btn btn-primary w-full btn-lg" state={{ from: { pathname: `/services/${id}` } }}>🔐 Login to Book</Link>
+              <Link to="/login" className="btn btn-primary w-full btn-lg" state={{ from: { pathname: `/services/${id}` } }} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8}}><Lock size={15} strokeWidth={2}/>Login to Book</Link>
             ) : user.role === 'customer' ? (
               <>
-                <button className="btn btn-primary w-full btn-lg" onClick={() => setShowBooking(true)}>📅 Book Now</button>
-                <Link to={`/chat/${service.provider_id}`} className="btn btn-outline w-full" style={{marginTop:'var(--space-2)',textAlign:'center'}}>💬 Message Provider</Link>
+                <button className="btn btn-primary w-full btn-lg" onClick={() => setShowBooking(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8}}><Calendar size={16} strokeWidth={2}/>Book Now</button>
+                <Link to={`/chat/${service.provider_id}`} className="btn btn-outline w-full" style={{marginTop:'var(--space-2)',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}><MessageSquare size={15} strokeWidth={2}/>Message Provider</Link>
               </>
             ) : (
               <div className="alert alert-info" style={{textAlign:'center'}}>Only customers can book services</div>
             )}
-            {service.provider_phone && <p style={{textAlign:'center',fontSize:'.8rem',color:'var(--text-muted)'}}>📞 {service.provider_phone}</p>}
+            {service.provider_phone && <p style={{textAlign:'center',fontSize:'.8rem',color:'var(--text-muted)',display:'flex',alignItems:'center',justifyContent:'center',gap:4}}><Phone size={12} strokeWidth={2}/>{service.provider_phone}</p>}
           </div>
         </aside>
       </div>
@@ -510,7 +512,7 @@ const ServiceDetail = () => {
         .provider-label { font-size:.75rem; color:var(--success); }
         .detail-info-grid { display:flex; flex-direction:column; gap:var(--space-4); margin-top:var(--space-4); }
         .detail-info-item { display:flex; align-items:center; gap:var(--space-4); }
-        .detail-info-icon { font-size:1.4rem; width:36px; text-align:center; }
+        .detail-info-icon { width:36px; display:flex; align-items:center; justify-content:center; color:var(--primary-dark); flex-shrink:0; }
         .detail-info-label { font-size:.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; }
         .detail-info-value { font-weight:700; font-size:.95rem; margin-top:2px; }
         .review-card { padding:var(--space-5); }

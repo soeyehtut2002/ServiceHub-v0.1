@@ -1,11 +1,9 @@
 import { Link } from 'react-router-dom';
 import StarRating from './StarRating';
-import { useCurrency } from '../context/CurrencyContext';
-import { getCurrencyMeta, formatCurrency, convertAmount } from '../utils/currency';
+import { getCurrencyMeta } from '../utils/currency';
+import { MapPin, ShieldCheck } from 'lucide-react';
 
 const ServiceCard = ({ service }) => {
-  const { rates, preferredCurrency } = useCurrency();
-
   const imageUrl = service.image_url
     ? service.image_url.startsWith('/uploads')
       ? `http://localhost:5000${service.image_url}`
@@ -15,17 +13,10 @@ const ServiceCard = ({ service }) => {
   const truncate = (text, len = 90) =>
     text?.length > len ? text.slice(0, len) + '…' : text;
 
-  // Native price (as set by provider)
   const nativeCurrency = service.currency || 'USD';
   const nativePrice    = parseFloat(service.price) || 0;
-
-  // Converted price for user's preferred currency
-  const displayCurrency = preferredCurrency;
-  const displayPrice    = convertAmount(nativePrice, nativeCurrency, displayCurrency, rates);
-  const displayMeta     = getCurrencyMeta(displayCurrency);
-  const nativeMeta      = getCurrencyMeta(nativeCurrency);
-
-  const showNative = displayCurrency !== nativeCurrency;
+  const nativeMeta     = getCurrencyMeta(nativeCurrency);
+  const digits         = nativeCurrency === 'USD' ? 2 : 0;
 
   return (
     <Link to={`/services/${service.id}`} className="service-card">
@@ -33,14 +24,20 @@ const ServiceCard = ({ service }) => {
         <img src={imageUrl} alt={service.title} loading="lazy" />
         <div className="service-card-category">{service.category}</div>
         {service.provider_verified && (
-          <div className="service-card-verified">✓ Verified</div>
+          <div className="service-card-verified">
+            <ShieldCheck size={11} strokeWidth={2.5} style={{ display: 'inline', marginRight: 3 }} />
+            Verified
+          </div>
         )}
       </div>
       <div className="service-card-body">
         <h3 className="service-card-title">{service.title}</h3>
         <p className="service-card-desc">{truncate(service.description)}</p>
         <div className="service-card-meta">
-          <span className="service-card-location">📍 {service.location}</span>
+          <span className="service-card-location">
+            <MapPin size={12} strokeWidth={2} style={{ display: 'inline', marginRight: 3, verticalAlign: 'middle' }} />
+            {service.location}
+          </span>
           <span className="service-card-provider">by {service.provider_name}</span>
         </div>
         <div className="service-card-footer">
@@ -51,15 +48,10 @@ const ServiceCard = ({ service }) => {
           </div>
           <div className="service-card-price-block">
             <div className="service-card-price">
-              <span className="currency">{displayMeta.symbol}</span>
-              {displayPrice.toLocaleString('en-US', { maximumFractionDigits: displayCurrency === 'USD' ? 2 : 0 })}
-              <span className="sc-cur-code">{displayCurrency}</span>
+              <span className="currency" key={nativeCurrency}>{nativeMeta.symbol}</span>
+              {nativePrice.toLocaleString('en-US', { maximumFractionDigits: digits, minimumFractionDigits: 0 })}
+              <span className="sc-cur-code">{nativeCurrency}</span>
             </div>
-            {showNative && (
-              <div className="sc-native-price">
-                {nativeMeta.flag} {formatCurrency(nativePrice, nativeCurrency)}
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -111,6 +103,7 @@ const ServiceCard = ({ service }) => {
           color: #fff; padding: 3px 8px;
           border-radius: var(--radius-full);
           font-size: 0.7rem; font-weight: 700;
+          display: flex; align-items: center;
         }
         .service-card-body {
           padding: var(--space-4) var(--space-5);
@@ -143,6 +136,8 @@ const ServiceCard = ({ service }) => {
         .service-card-location, .service-card-provider {
           font-size: 0.78rem;
           color: var(--text-muted);
+          display: flex;
+          align-items: center;
         }
         .service-card-footer {
           display: flex;

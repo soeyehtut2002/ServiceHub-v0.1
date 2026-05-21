@@ -2,16 +2,17 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import API from '../api/axios';
 import ServiceCard from '../components/ServiceCard';
+import { Sparkles, Wrench, Zap, Leaf, Paintbrush, Package, BookOpen, Camera, Search, Star, CalendarCheck } from 'lucide-react';
 
 const CATEGORIES = [
-  { name: 'Cleaning',      icon: '🧹' },
-  { name: 'Plumbing',      icon: '🔧' },
-  { name: 'Electrical',    icon: '⚡' },
-  { name: 'Gardening',     icon: '🌿' },
-  { name: 'Painting',      icon: '🎨' },
-  { name: 'Moving',        icon: '📦' },
-  { name: 'Tutoring',      icon: '📚' },
-  { name: 'Photography',   icon: '📷' },
+  { name: 'Cleaning',    Icon: Sparkles },
+  { name: 'Plumbing',    Icon: Wrench },
+  { name: 'Electrical',  Icon: Zap },
+  { name: 'Gardening',   Icon: Leaf },
+  { name: 'Painting',    Icon: Paintbrush },
+  { name: 'Moving',      Icon: Package },
+  { name: 'Tutoring',    Icon: BookOpen },
+  { name: 'Photography', Icon: Camera },
 ];
 
 const Home = () => {
@@ -51,7 +52,7 @@ const Home = () => {
         <div className="hero-orb hero-orb-1" />
         <div className="hero-orb hero-orb-2" />
         <div className="container hero-content">
-          <div className="hero-badge">✨ Trusted by 10,000+ customers</div>
+          <div className="hero-badge">Trusted by 10,000+ customers</div>
           <h1 className="hero-title">
             Find Trusted Local<br />
             <span className="gradient-text">Services Near You</span>
@@ -62,7 +63,7 @@ const Home = () => {
           </p>
           <form className="hero-search" onSubmit={handleSearch}>
             <div className="hero-search-inner">
-              <span className="hero-search-icon">🔍</span>
+              <span className="hero-search-icon"><Search size={17} strokeWidth={2} /></span>
               <input
                 type="text"
                 placeholder="What service are you looking for?"
@@ -97,7 +98,7 @@ const Home = () => {
                 to={`/services?category=${encodeURIComponent(cat.name)}`}
                 className="category-card"
               >
-                <span className="category-icon">{cat.icon}</span>
+                <span className="category-icon"><cat.Icon size={26} strokeWidth={1.5} /></span>
                 <span className="category-name">{cat.name}</span>
               </Link>
             ))}
@@ -110,7 +111,7 @@ const Home = () => {
         <div className="container">
           <div className="flex-between mb-8">
             <div>
-              <h2 className="h2">⭐ Featured Services</h2>
+              <h2 className="h2">Featured Services</h2>
               <p className="text-muted mt-2">Top-rated services chosen for quality</p>
             </div>
             <Link to="/services" className="btn btn-outline hide-mobile">View All →</Link>
@@ -119,7 +120,7 @@ const Home = () => {
             <div className="spinner-container"><div className="spinner" /></div>
           ) : featured.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-icon">🔍</div>
+              <div className="empty-icon" style={{display:'flex',justifyContent:'center',opacity:0.4}}><Search size={40} strokeWidth={1.5}/></div>
               <p>No services yet. <Link to="/register" className="text-primary-color">Be the first provider!</Link></p>
             </div>
           ) : (
@@ -139,13 +140,13 @@ const Home = () => {
           <h2 className="h2 text-center mb-8">How ServiceHub Works</h2>
           <div className="how-grid">
             {[
-              { step: '01', icon: '🔍', title: 'Search Services', desc: 'Browse hundreds of local services. Filter by category, location, price, or rating.' },
-              { step: '02', icon: '📅', title: 'Book Instantly', desc: 'Select your preferred date and time. Add special notes for the provider.' },
-              { step: '03', icon: '⭐', title: 'Rate & Review', desc: 'After service completion, share your experience to help others.' },
+              { step: '01', Icon: Search,        title: 'Search Services', desc: 'Browse hundreds of local services. Filter by category, location, price, or rating.' },
+              { step: '02', Icon: CalendarCheck,  title: 'Book Instantly',  desc: 'Select your preferred date and time. Add special notes for the provider.' },
+              { step: '03', Icon: Star,           title: 'Rate & Review',   desc: 'After service completion, share your experience to help others.' },
             ].map((item) => (
               <div key={item.step} className="how-card">
                 <div className="how-step">{item.step}</div>
-                <div className="how-icon">{item.icon}</div>
+                <div className="how-icon"><item.Icon size={32} strokeWidth={1.5} /></div>
                 <h3 className="how-title">{item.title}</h3>
                 <p className="how-desc">{item.desc}</p>
               </div>
@@ -261,7 +262,7 @@ const Home = () => {
           border-color: var(--primary); transform: translateY(-3px);
           box-shadow: var(--shadow-md); background: var(--primary-glow);
         }
-        .category-icon { font-size: 1.8rem; }
+        .category-icon { display:flex; align-items:center; justify-content:center; color: var(--primary-dark); }
         .category-name { font-size: 0.82rem; font-weight: 700; color: var(--text-secondary); text-align: center; }
         .category-card:hover .category-name { color: var(--primary-dark); }
 
@@ -279,7 +280,7 @@ const Home = () => {
           font-size: 2.5rem; font-weight: 900;
           color: rgba(14,165,233,0.06); line-height: 1;
         }
-        .how-icon { font-size: 2.2rem; margin-bottom: var(--space-3); }
+        .how-icon { margin-bottom: var(--space-3); display:flex; justify-content:center; align-items:center; color: var(--primary-dark); }
         .how-title { font-size: 1rem; font-weight: 700; margin-bottom: var(--space-2); color: var(--text-primary); }
         .how-desc { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; }
 
