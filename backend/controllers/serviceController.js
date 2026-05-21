@@ -171,20 +171,32 @@ const getProviderServices = async (req, res) => {
 // ─── @route  POST /api/services ──────────────────────────────────────────────
 const createService = async (req, res) => {
   try {
-    const { title, description, category, location, price, duration_hours, team_count } = req.body;
+    const { title, description, category, location, price, duration_hours, team_count, currency } = req.body;
 
     if (!title || !description || !category || !location || !price) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
-    const dur  = Math.max(1, Math.min(12, parseInt(duration_hours) || 1));  // clamp 1-12 hrs
-    const teams = Math.max(1, Math.min(50, parseInt(team_count)    || 1));  // clamp 1-50 teams
-    const image_url = req.file ? `/uploads/${req.file.filename}` : null;
+    const SUPPORTED = ['USD', 'THB', 'MMK', 'CNY'];
+    const priceCurrency = (currency && SUPPORTED.includes(currency.toUpperCase()))
+      ? currency.toUpperCase()
+      : 'USD';
+
+    const dur   = Math.max(1, Math.min(12, parseInt(duration_hours) || 1));
+    const teams = Math.max(1, Math.min(50, parseInt(team_count)    || 1));
+
+    // Build image URLs from uploaded files (up to 7)
+    const newUrls   = (req.files || []).map(f => `/uploads/${f.filename}`);
+    const image_url  = newUrls[0] || null;          // primary image (backward compat)
+    const image_urls = newUrls;                     // full array for gallery
 
     const result = await db.query(
-      `INSERT INTO services (provider_id, title, description, category, location, price, image_url, duration_hours, team_count)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [req.user.id, title, description, category, location, parseFloat(price), image_url, dur, teams]
+      `INSERT INTO services
+         (provider_id, title, description, category, location, price, currency,
+          image_url, image_urls, duration_hours, team_count)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      [req.user.id, title, description, category, location,
+       parseFloat(price), priceCurrency, image_url, image_urls, dur, teams]
     );
 
     res.status(201).json(result.rows[0]);
@@ -198,7 +210,8 @@ const createService = async (req, res) => {
 const updateService = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, category, location, price, is_active, duration_hours, team_count } = req.body;
+    const { title, description, category, location, price, is_active,
+            duration_hours, team_count, remove_image_urls, currency } = req.body;
 
     const check = await db.query('SELECT * FROM services WHERE id = $1', [id]);
     if (check.rows.length === 0) return res.status(404).json({ error: 'Service not found' });
@@ -206,11 +219,24 @@ const updateService = async (req, res) => {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
+    const SUPPORTED = ['USD', 'THB', 'MMK', 'CNY'];
+    const priceCurrency = (currency && SUPPORTED.includes(currency.toUpperCase()))
+      ? currency.toUpperCase()
+      : null; // null → COALESCE keeps existing
+
     const dur   = duration_hours ? Math.max(1, Math.min(12, parseInt(duration_hours))) : null;
     const teams = team_count     ? Math.max(1, Math.min(50, parseInt(team_count)))     : null;
-    const image_url = req.file
-      ? `/uploads/${req.file.filename}`
-      : check.rows[0].image_url;
+
+    // Build updated image_urls: start from existing, remove requested, append new
+    let existingUrls = check.rows[0].image_urls || [];
+    const toRemove   = remove_image_urls
+      ? (Array.isArray(remove_image_urls) ? remove_image_urls : JSON.parse(remove_image_urls))
+      : [];
+    existingUrls = existingUrls.filter(u => !toRemove.includes(u));
+
+    const newUrls    = (req.files || []).map(f => `/uploads/${f.filename}`);
+    const image_urls = [...existingUrls, ...newUrls].slice(0, 7);
+    const image_url  = image_urls[0] || check.rows[0].image_url || null;
 
     const result = await db.query(
       `UPDATE services
@@ -219,14 +245,19 @@ const updateService = async (req, res) => {
            category       = COALESCE($3,  category),
            location       = COALESCE($4,  location),
            price          = COALESCE($5,  price),
-           image_url      = $6,
-           is_active      = COALESCE($7,  is_active),
-           duration_hours = COALESCE($8,  duration_hours),
-           team_count     = COALESCE($9,  team_count),
+           currency       = COALESCE($6,  currency),
+           image_url      = $7,
+           image_urls     = $8,
+           is_active      = COALESCE($9,  is_active),
+           duration_hours = COALESCE($10, duration_hours),
+           team_count     = COALESCE($11, team_count),
            updated_at     = CURRENT_TIMESTAMP
-       WHERE id = $10 RETURNING *`,
-      [title, description, category, location, price ? parseFloat(price) : null,
-       image_url, is_active ?? null, dur, teams, id]
+       WHERE id = $12 RETURNING *`,
+      [title, description, category, location,
+       price ? parseFloat(price) : null,
+       priceCurrency,
+       image_url, image_urls,
+       is_active ?? null, dur, teams, id]
     );
 
     res.status(200).json(result.rows[0]);

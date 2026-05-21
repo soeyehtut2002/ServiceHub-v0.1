@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import API from '../api/axios';
 import toast from 'react-hot-toast';
-import { formatAllCurrencies } from '../utils/currency';
+import { useCurrency } from '../context/CurrencyContext';
+import { SUPPORTED_CURRENCIES, getCurrencyMeta, formatCurrency, convertAmount, buildConversionLabel } from '../utils/currency';
 
 const BookingModal = ({ service, onClose, onBooked }) => {
+  const { rates, preferredCurrency } = useCurrency();
+
   const [slots,          setSlots]          = useState([]);
   const [selectedSlot,   setSelectedSlot]   = useState(null);
   const [filterDate,     setFilterDate]     = useState('');
@@ -14,7 +17,18 @@ const BookingModal = ({ service, onClose, onBooked }) => {
   const [location,       setLocation]       = useState('');
   const [loading,        setLoading]        = useState(false);
   const [slotsLoading,   setSlotsLoading]   = useState(true);
-  const prices = formatAllCurrencies(service.price);
+
+  // Currency selection
+  const nativeCurrency   = service.currency || 'USD';
+  const nativePrice      = parseFloat(service.price) || 0;
+  const [paymentCurrency, setPaymentCurrency] = useState(preferredCurrency);
+
+  const nativeMeta  = getCurrencyMeta(nativeCurrency);
+  const payMeta     = getCurrencyMeta(paymentCurrency);
+  const convertedAmt = convertAmount(nativePrice, nativeCurrency, paymentCurrency, rates);
+  const exchangeRate = paymentCurrency !== nativeCurrency
+    ? (convertedAmt / nativePrice).toFixed(5)
+    : 1;
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -46,7 +60,7 @@ const BookingModal = ({ service, onClose, onBooked }) => {
 
   // Group slots by date
   const groupedSlots = slots.reduce((acc, slot) => {
-    const d = String(slot.slot_date).substring(0, 10); // normalize to YYYY-MM-DD
+    const d = String(slot.slot_date).substring(0, 10);
     if (!acc[d]) acc[d] = [];
     acc[d].push(slot);
     return acc;
@@ -87,11 +101,12 @@ const BookingModal = ({ service, onClose, onBooked }) => {
     setLoading(true);
     try {
       await API.post('/bookings', {
-        service_id:   service.id,
+        service_id:       service.id,
         booking_date,
-        notes:        notes.trim() || null,
-        location:     location.trim() || null,
-        time_slot_id: time_slot_id || undefined,
+        notes:            notes.trim() || null,
+        location:         location.trim() || null,
+        time_slot_id:     time_slot_id || undefined,
+        payment_currency: paymentCurrency,
       });
       toast.success('Booking confirmed! 🎉');
       if (onBooked) onBooked();
@@ -102,6 +117,10 @@ const BookingModal = ({ service, onClose, onBooked }) => {
       setLoading(false);
     }
   };
+
+  const conversionLabel = paymentCurrency !== nativeCurrency
+    ? buildConversionLabel(nativePrice, nativeCurrency, paymentCurrency, rates)
+    : null;
 
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -115,14 +134,53 @@ const BookingModal = ({ service, onClose, onBooked }) => {
         <div className="booking-service-info">
           <p className="booking-service-title">{service.title}</p>
           <div style={{ textAlign: 'right' }}>
-            <div className="price-tag"><span className="currency">{prices.thb}</span></div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 }}>{prices.usd} · {prices.mmk}</div>
+            <div className="price-tag" style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--success)' }}>
+              {nativeMeta.symbol}{nativePrice.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+              <span style={{ fontSize: '.7em', fontWeight: 600, color: 'var(--text-muted)', marginLeft: 3 }}>{nativeCurrency}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Currency Selection + Conversion Preview ──────────────────── */}
+        <div className="bm-currency-box">
+          <div className="bm-currency-row">
+            <label className="form-label" style={{ margin: 0 }}>💳 Pay in</label>
+            <div className="bm-cur-pills">
+              {SUPPORTED_CURRENCIES.map(cur => (
+                <button
+                  key={cur.code}
+                  type="button"
+                  className={`bm-cur-pill ${paymentCurrency === cur.code ? 'active' : ''}`}
+                  onClick={() => setPaymentCurrency(cur.code)}
+                  title={cur.name}
+                >
+                  {cur.flag} {cur.code}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {conversionLabel ? (
+            <div className="bm-conversion-line">
+              <span className="bm-conversion-icon">💱</span>
+              <span className="bm-conversion-text">{conversionLabel}</span>
+              <span className="bm-rate-chip">rate: {exchangeRate}</span>
+            </div>
+          ) : (
+            <div className="bm-conversion-line bm-same-currency">
+              <span className="bm-conversion-icon">✓</span>
+              <span className="bm-conversion-text">Paying in service currency</span>
+            </div>
+          )}
+
+          <div className="bm-you-pay">
+            You pay: <strong>{payMeta.symbol}{convertedAmt.toLocaleString('en-US', { maximumFractionDigits: paymentCurrency === 'USD' ? 2 : 0 })} {paymentCurrency}</strong>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="booking-form">
 
-          {/* ── Time Slot Picker ─────────────────────────────────────────── */}
+          {/* ── Time Slot Picker ───────────────────────────────────────── */}
           {slotsLoading ? (
             <div className="spinner-container" style={{minHeight:80}}><div className="spinner"/></div>
           ) : hasSlots ? (
@@ -247,15 +305,32 @@ const BookingModal = ({ service, onClose, onBooked }) => {
           <div className="booking-actions">
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Booking...' : '✅ Confirm Booking'}
+              {loading ? 'Booking...' : `✅ Confirm & Pay ${payMeta.flag} ${paymentCurrency}`}
             </button>
           </div>
         </form>
 
         <style>{`
-          .bm-content { max-width: 520px; }
-          .booking-service-info { display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-md); padding:var(--space-4); margin-bottom:var(--space-6); }
+          .bm-content { max-width: 540px; }
+          .booking-service-info { display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-md); padding:var(--space-4); margin-bottom:var(--space-4); }
           .booking-service-title { font-weight:700; font-size:.95rem; }
+
+          /* ── Currency Box ────────────────────────────────────────────── */
+          .bm-currency-box { background:linear-gradient(135deg,rgba(108,99,255,.08),rgba(14,165,233,.06)); border:1px solid rgba(108,99,255,.22); border-radius:var(--radius-lg); padding:var(--space-4); margin-bottom:var(--space-4); display:flex; flex-direction:column; gap:var(--space-3); }
+          .bm-currency-row { display:flex; align-items:center; gap:var(--space-3); flex-wrap:wrap; }
+          .bm-cur-pills { display:flex; gap:6px; flex-wrap:wrap; }
+          .bm-cur-pill { padding:5px 12px; border-radius:20px; font-size:.8rem; font-weight:700; border:1.5px solid var(--border); background:#fff; color:var(--text-secondary); cursor:pointer; transition:all .18s; }
+          .bm-cur-pill.active { background:linear-gradient(135deg,#6C63FF,#0ea5e9); border-color:transparent; color:#fff; box-shadow:0 2px 8px rgba(108,99,255,.35); }
+          .bm-cur-pill:hover:not(.active) { border-color:var(--primary); color:var(--primary-dark); background:rgba(14,165,233,.06); }
+
+          .bm-conversion-line { display:flex; align-items:center; gap:8px; padding:8px 12px; background:rgba(255,255,255,.55); border-radius:var(--radius-md); border:1px solid rgba(108,99,255,.15); }
+          .bm-conversion-icon { font-size:1rem; flex-shrink:0; }
+          .bm-conversion-text { font-size:.88rem; font-weight:700; color:var(--text-primary); flex:1; }
+          .bm-rate-chip { font-size:.7rem; background:rgba(108,99,255,.12); color:#6C63FF; border-radius:var(--radius-full); padding:2px 8px; font-weight:600; white-space:nowrap; }
+          .bm-same-currency .bm-conversion-text { color:var(--text-muted); font-weight:400; }
+          .bm-you-pay { font-size:.82rem; color:var(--text-secondary); }
+          .bm-you-pay strong { color:var(--success); font-size:.95rem; }
+
           .booking-form { display:flex; flex-direction:column; gap:var(--space-4); }
           .form-row { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-4); }
           .booking-actions { display:flex; gap:var(--space-3); justify-content:flex-end; margin-top:var(--space-2); }

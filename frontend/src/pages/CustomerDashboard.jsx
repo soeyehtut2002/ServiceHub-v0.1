@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import StatusBadge from '../components/StatusBadge';
 import ReviewForm from '../components/ReviewForm';
 import toast from 'react-hot-toast';
+import { getCurrencyMeta, formatCurrency } from '../utils/currency';
 
 const CustomerDashboard = () => {
   const { user } = useAuth();
@@ -121,7 +122,7 @@ const CustomerDashboard = () => {
         ) : (
           <div className="table-wrapper">
             <table className="table">
-              <thead><tr><th>Service</th><th>Provider</th><th>Date / Slot</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Service</th><th>Provider</th><th>Date / Slot</th><th>Price Paid</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
                 {filtered.map(b => (
                   <tr key={b.id}>
@@ -148,7 +149,26 @@ const CustomerDashboard = () => {
                         new Date(b.booking_date).toLocaleString()
                       )}
                     </td>
-                    <td style={{color:'var(--success)',fontWeight:700}}>${parseFloat(b.price).toFixed(2)}</td>
+                    <td>
+                      {/* Show payment currency if available, else fallback to service price */}
+                      {b.converted_price && b.payment_currency ? (
+                        <div>
+                          <div style={{fontWeight:800,color:'var(--primary)',fontSize:'.95rem'}}>
+                            {getCurrencyMeta(b.payment_currency).flag} {getCurrencyMeta(b.payment_currency).symbol}{parseFloat(b.converted_price).toLocaleString('en-US',{maximumFractionDigits:b.payment_currency==='USD'?2:0})} <span style={{fontSize:'.75em',fontWeight:600}}>{b.payment_currency}</span>
+                          </div>
+                          <div style={{fontSize:'.73rem',color:'var(--text-muted)',marginTop:2}}>
+                            {getCurrencyMeta(b.currency||'USD').flag} {formatCurrency(parseFloat(b.price), b.currency||'USD')} original
+                          </div>
+                          {b.exchange_rate && b.payment_currency !== (b.currency||'USD') && (
+                            <div style={{fontSize:'.68rem',color:'var(--text-muted)'}}>rate: {parseFloat(b.exchange_rate).toFixed(4)}</div>
+                          )}
+                        </div>
+                      ) : (
+                        <span style={{color:'var(--success)',fontWeight:700}}>
+                          {getCurrencyMeta(b.currency||'USD').symbol}{parseFloat(b.price).toFixed(2)} {b.currency||'USD'}
+                        </span>
+                      )}
+                    </td>
                     <td><StatusBadge status={b.status}/></td>
                     <td>
                       <div style={{display:'flex',gap:'var(--space-2)',flexWrap:'wrap'}}>

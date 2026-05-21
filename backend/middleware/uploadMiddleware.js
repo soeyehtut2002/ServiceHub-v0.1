@@ -38,6 +38,13 @@ const uploadService = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
 });
 
+// ── Multiple service images — up to 7 ────────────────────────────────────────
+const uploadServiceImages = multer({
+  storage: makeStorage('service'),
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024, files: 7 },
+});
+
 // ── Single avatar image ───────────────────────────────────────────────────────
 const uploadAvatar = multer({
   storage: makeStorage('avatar'),
@@ -63,8 +70,9 @@ const uploadReview = multer({
 // calls still work without changes (serviceRoutes uses upload.single)
 const upload = uploadService;
 
-module.exports = upload;                            // backward-compatible default
-module.exports.uploadService = uploadService;
-module.exports.uploadAvatar  = uploadAvatar;
-module.exports.uploadGallery = uploadGallery;
-module.exports.uploadReview  = uploadReview;
+module.exports = upload;                                  // backward-compatible default
+module.exports.uploadService       = uploadService;
+module.exports.uploadServiceImages = uploadServiceImages;
+module.exports.uploadAvatar        = uploadAvatar;
+module.exports.uploadGallery       = uploadGallery;
+module.exports.uploadReview        = uploadReview;

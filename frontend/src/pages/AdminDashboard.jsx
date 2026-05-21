@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import API from '../api/axios';
 import StatusBadge from '../components/StatusBadge';
 import toast from 'react-hot-toast';
-import { formatAllCurrencies } from '../utils/currency';
+import { getCurrencyMeta, formatCurrency, formatAllCurrencies } from '../utils/currency';
 
 const AdminDashboard = () => {
   const [tab, setTab] = useState('overview');
@@ -231,10 +231,13 @@ const AdminDashboard = () => {
                 </div>
                 <div className="table-wrapper">
                   <table className="table">
-                    <thead><tr><th>Service</th><th>Provider</th><th>Category</th><th>Price (THB)</th><th>Rating</th><th>Bookings</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>Service</th><th>Provider</th><th>Category</th><th>Price</th><th>Rating</th><th>Bookings</th><th>Actions</th></tr></thead>
                     <tbody>
                       {filteredServices.map(s => {
-                        const p = formatAllCurrencies(s.price);
+                        const nativeCur = s.currency || 'USD';
+                        const nativeMeta = getCurrencyMeta(nativeCur);
+                        const altCur = nativeCur === 'THB' ? 'USD' : 'THB';
+                        const altFormatted = formatAllCurrencies(s.price, nativeCur);
                         return (
                           <tr key={s.id}>
                             <td>
@@ -244,8 +247,13 @@ const AdminDashboard = () => {
                             <td>{s.provider_name}</td>
                             <td><span className="badge badge-primary">{s.category}</span></td>
                             <td>
-                              <div style={{ fontWeight: 700, color: 'var(--primary)' }}>{p.thb}</div>
-                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{p.usd}</div>
+                              <div style={{ fontWeight: 700, color: 'var(--primary)' }}>
+                                {nativeMeta.symbol}{parseFloat(s.price).toLocaleString('en-US', { maximumFractionDigits: nativeCur === 'USD' ? 2 : 0 })}
+                                <span style={{ fontSize: '.72em', fontWeight: 600, color: 'var(--text-muted)', marginLeft: 3 }}>{nativeCur}</span>
+                              </div>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                ≈ {altFormatted[altCur.toLowerCase()]} {altCur}
+                              </div>
                             </td>
                             <td>⭐ {parseFloat(s.avg_rating || 0).toFixed(1)} ({s.review_count})</td>
                             <td>{s.booking_count}</td>
@@ -268,10 +276,11 @@ const AdminDashboard = () => {
             {tab === 'bookings' && (
               <div className="table-wrapper">
                 <table className="table">
-                  <thead><tr><th>Customer</th><th>Service</th><th>Provider</th><th>Date</th><th>Price (THB)</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead>
+                  <thead><tr><th>Customer</th><th>Service</th><th>Provider</th><th>Date</th><th>Price</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead>
                   <tbody>
                     {bookings.map(b => {
-                      const p = formatAllCurrencies(b.price);
+                      const nativeCur  = b.currency || 'USD';
+                      const nativeMeta = getCurrencyMeta(nativeCur);
                       return (
                         <tr key={b.id}>
                           <td style={{fontWeight:600}}>{b.customer_name}</td>
@@ -279,8 +288,17 @@ const AdminDashboard = () => {
                           <td>{b.provider_name}</td>
                           <td>{new Date(b.booking_date).toLocaleDateString()}</td>
                           <td>
-                            <div style={{color:'var(--primary)',fontWeight:700}}>{p.thb}</div>
-                            <div style={{fontSize:'0.7rem',color:'var(--text-muted)'}}>{p.usd}</div>
+                            <div style={{color:'var(--primary)',fontWeight:700}}>
+                              {nativeMeta.symbol}{parseFloat(b.price).toLocaleString('en-US',{maximumFractionDigits:nativeCur==='USD'?2:0})}
+                              <span style={{fontSize:'.72em',color:'var(--text-muted)',marginLeft:3}}>{nativeCur}</span>
+                            </div>
+                            {b.converted_price && b.payment_currency && b.payment_currency !== nativeCur && (
+                              <div style={{fontSize:'0.7rem',color:'var(--text-muted)'}}>
+                                paid: {getCurrencyMeta(b.payment_currency).symbol}
+                                {parseFloat(b.converted_price).toLocaleString('en-US',{maximumFractionDigits:b.payment_currency==='USD'?2:0})}
+                                {' '}{b.payment_currency}
+                              </div>
+                            )}
                           </td>
                           <td style={{fontSize:'.8rem',color:'var(--text-secondary)',maxWidth:140}}>{b.location || <span style={{color:'var(--text-muted)'}}>—</span>}</td>
                           <td><StatusBadge status={b.status}/></td>

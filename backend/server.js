@@ -17,6 +17,7 @@ const profileRoutes      = require('./routes/profileRoutes');
 const timeSlotRoutes     = require('./routes/timeSlotRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const scheduleRoutes     = require('./routes/scheduleRoutes');
+const currencyRoutes     = require('./routes/currencyRoutes');
 const socketState        = require('./services/socketState');
 
 const app        = express();
@@ -137,6 +138,7 @@ app.use('/api/profile',       profileRoutes);
 app.use('/api/slots',         timeSlotRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/schedule',      scheduleRoutes);
+app.use('/api/currency',      currencyRoutes);
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/', (req, res) => {

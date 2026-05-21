@@ -1,7 +1,11 @@
 import { Link } from 'react-router-dom';
 import StarRating from './StarRating';
+import { useCurrency } from '../context/CurrencyContext';
+import { getCurrencyMeta, formatCurrency, convertAmount } from '../utils/currency';
 
 const ServiceCard = ({ service }) => {
+  const { rates, preferredCurrency } = useCurrency();
+
   const imageUrl = service.image_url
     ? service.image_url.startsWith('/uploads')
       ? `http://localhost:5000${service.image_url}`
@@ -10,6 +14,18 @@ const ServiceCard = ({ service }) => {
 
   const truncate = (text, len = 90) =>
     text?.length > len ? text.slice(0, len) + '…' : text;
+
+  // Native price (as set by provider)
+  const nativeCurrency = service.currency || 'USD';
+  const nativePrice    = parseFloat(service.price) || 0;
+
+  // Converted price for user's preferred currency
+  const displayCurrency = preferredCurrency;
+  const displayPrice    = convertAmount(nativePrice, nativeCurrency, displayCurrency, rates);
+  const displayMeta     = getCurrencyMeta(displayCurrency);
+  const nativeMeta      = getCurrencyMeta(nativeCurrency);
+
+  const showNative = displayCurrency !== nativeCurrency;
 
   return (
     <Link to={`/services/${service.id}`} className="service-card">
@@ -33,9 +49,17 @@ const ServiceCard = ({ service }) => {
             <span className="rating-value">{parseFloat(service.avg_rating || 0).toFixed(1)}</span>
             <span className="rating-count">({service.review_count || 0})</span>
           </div>
-          <div className="service-card-price">
-            <span className="currency">$</span>
-            {parseFloat(service.price).toFixed(2)}
+          <div className="service-card-price-block">
+            <div className="service-card-price">
+              <span className="currency">{displayMeta.symbol}</span>
+              {displayPrice.toLocaleString('en-US', { maximumFractionDigits: displayCurrency === 'USD' ? 2 : 0 })}
+              <span className="sc-cur-code">{displayCurrency}</span>
+            </div>
+            {showNative && (
+              <div className="sc-native-price">
+                {nativeMeta.flag} {formatCurrency(nativePrice, nativeCurrency)}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -135,12 +159,16 @@ const ServiceCard = ({ service }) => {
         }
         .rating-value { font-size: 0.85rem; font-weight: 700; color: var(--text-primary); }
         .rating-count { font-size: 0.75rem; color: var(--text-muted); }
+        .service-card-price-block { text-align: right; }
         .service-card-price {
-          font-size: 1.15rem;
+          font-size: 1.1rem;
           font-weight: 800;
           color: var(--success);
+          display: flex; align-items: baseline; gap: 2px;
         }
         .service-card-price .currency { font-size: 0.75em; font-weight: 600; }
+        .sc-cur-code { font-size: 0.65em; font-weight: 600; color: var(--text-muted); margin-left: 2px; }
+        .sc-native-price { font-size: 0.7rem; color: var(--text-muted); margin-top: 1px; }
       `}</style>
     </Link>
   );

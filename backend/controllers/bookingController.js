@@ -1,6 +1,7 @@
 const db                = require('../config/db');
 const { notify }        = require('../services/notificationService');
 const email             = require('../services/emailService');
+const { getRates, convert, getRate } = require('../services/currencyService');
 
 // ── Helper: format booking date ───────────────────────────────────────────────
 function fmtDate(d) {
@@ -11,7 +12,7 @@ function fmtDate(d) {
 // ── @route  POST /api/bookings ────────────────────────────────────────────────
 const createBooking = async (req, res) => {
   try {
-    const { service_id, booking_date, notes, location, time_slot_id } = req.body;
+    const { service_id, booking_date, notes, location, time_slot_id, payment_currency } = req.body;
 
     if (!service_id || !booking_date) {
       return res.status(400).json({ error: 'service_id and booking_date are required' });
@@ -54,11 +55,6 @@ const createBooking = async (req, res) => {
       }
       const s = slot.rows[0];
 
-      // ── Capacity check ────────────────────────────────────────────────────────
-      // max_capacity = service.team_count (set when slot was created).
-      // Each service has its OWN team pool. A booking on Service A does not
-      // consume a team from Service B — they are independent.
-      // So only this slot's booked_count vs max_capacity matters.
       if (s.booked_count >= s.max_capacity) {
         if (s.max_capacity === 1) {
           return res.status(400).json({ error: 'This time slot is already fully booked. Please choose a different slot.' });
@@ -68,7 +64,6 @@ const createBooking = async (req, res) => {
         });
       }
 
-      // ── Prevent the same customer from double-booking the same slot ───────────
       const duplicate = await db.query(
         `SELECT id FROM bookings
          WHERE customer_id = $1
@@ -81,11 +76,27 @@ const createBooking = async (req, res) => {
       }
     }
 
+    // ── Currency Conversion ──────────────────────────────────────────────────
+    const SUPPORTED = ['USD', 'THB', 'MMK', 'CNY'];
+    const originalCurrency = (svc.currency && SUPPORTED.includes(svc.currency)) ? svc.currency : 'USD';
+    const payCurrency      = (payment_currency && SUPPORTED.includes(payment_currency.toUpperCase()))
+      ? payment_currency.toUpperCase()
+      : originalCurrency;
+
+    const rates         = await getRates();
+    const exchangeRate  = getRate(originalCurrency, payCurrency, rates);
+    const convertedAmt  = convert(parseFloat(svc.price), originalCurrency, payCurrency, rates);
+
     // Create booking
     const result = await db.query(
-      `INSERT INTO bookings (customer_id, service_id, booking_date, notes, location, time_slot_id)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [req.user.id, service_id, booking_date, notes || null, location || null, time_slot_id || null]
+      `INSERT INTO bookings
+         (customer_id, service_id, booking_date, notes, location, time_slot_id,
+          payment_currency, converted_price, exchange_rate)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [req.user.id, service_id, booking_date, notes || null, location || null,
+       time_slot_id || null, payCurrency,
+       parseFloat(convertedAmt.toFixed(2)),
+       parseFloat(exchangeRate.toFixed(8))]
     );
 
     // Increment booked_count; recalculate is_booked (full when booked_count reaches max_capacity)
@@ -99,8 +110,19 @@ const createBooking = async (req, res) => {
       );
     }
 
+    const booking = result.rows[0];
+
+    // ── Insert payments audit record ─────────────────────────────────────────
+    await db.query(
+      `INSERT INTO payments
+         (booking_id, original_price, original_currency, converted_price, payment_currency, exchange_rate)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [booking.id, parseFloat(svc.price), originalCurrency,
+       parseFloat(convertedAmt.toFixed(2)), payCurrency,
+       parseFloat(exchangeRate.toFixed(8))]
+    );
+
     // ── Fetch customer + provider details for notifications ───────────────────
-    const booking    = result.rows[0];
     const peopleRows = await db.query(
       `SELECT u.id, u.name, u.email, u.role FROM users u
        WHERE u.id = ANY($1::int[])`,

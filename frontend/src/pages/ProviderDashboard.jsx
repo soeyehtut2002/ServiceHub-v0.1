@@ -4,6 +4,8 @@ import API from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import StatusBadge from '../components/StatusBadge';
 import toast from 'react-hot-toast';
+import { useCurrency } from '../context/CurrencyContext';
+import { SUPPORTED_CURRENCIES, getCurrencyMeta, convertAmount, formatCurrency } from '../utils/currency';
 
 const CATEGORIES = ['Cleaning','Plumbing','Electrical','Gardening','Painting','Moving','Tutoring','Photography','Other'];
 
@@ -142,7 +144,7 @@ const ProviderDashboard = () => {
           ) : (
             <div className="table-wrapper">
               <table className="table">
-                <thead><tr><th>Customer</th><th>Service</th><th>Date / Slot</th><th>Notes</th><th>Status</th><th>Actions</th></tr></thead>
+                <thead><tr><th>Customer</th><th>Service</th><th>Date / Slot</th><th>Payment</th><th>Notes</th><th>Status</th><th>Actions</th></tr></thead>
                 <tbody>
                   {bookings.map(b => (
                     <tr key={b.id}>
@@ -159,7 +161,9 @@ const ProviderDashboard = () => {
                       </td>
                       <td>
                         <div style={{fontWeight:600}}>{b.service_title}</div>
-                        <div style={{fontSize:'.75rem',color:'var(--success)',fontWeight:700}}>${parseFloat(b.price).toFixed(2)}</div>
+                        <div style={{fontSize:'.75rem',color:'var(--success)',fontWeight:700}}>
+                          {getCurrencyMeta(b.currency||'USD').symbol}{parseFloat(b.price).toFixed(2)} {b.currency||'USD'}
+                        </div>
                       </td>
                       <td>
                         {b.slot_date ? (
@@ -168,6 +172,16 @@ const ProviderDashboard = () => {
                             <div style={{fontSize:'.75rem',color:'var(--text-muted)'}}>{b.start_time?.slice(0,5)} – {b.end_time?.slice(0,5)}</div>
                           </div>
                         ) : new Date(b.booking_date).toLocaleString()}
+                      </td>
+                      <td>
+                        {b.converted_price && b.payment_currency ? (
+                          <div>
+                            <div style={{fontWeight:700,color:'var(--primary)',fontSize:'.88rem'}}>
+                              {getCurrencyMeta(b.payment_currency).symbol}{parseFloat(b.converted_price).toLocaleString('en-US',{maximumFractionDigits:b.payment_currency==='USD'?2:0})} {b.payment_currency}
+                            </div>
+                            <div style={{fontSize:'.72rem',color:'var(--text-muted)'}}>rate: {parseFloat(b.exchange_rate||1).toFixed(4)}</div>
+                          </div>
+                        ) : <span style={{color:'var(--text-muted)'}}>—</span>}
                       </td>
                       <td><span style={{fontSize:'.82rem',color:'var(--text-secondary)'}}>{b.notes || '—'}</span></td>
                       <td><StatusBadge status={b.status}/></td>
@@ -225,7 +239,10 @@ const ProviderDashboard = () => {
                     <h3 className="provider-service-title">{s.title}</h3>
                     <div className="provider-service-meta">
                       <span className="badge badge-primary">{s.category}</span>
-                      <span style={{color:'var(--success)',fontWeight:700}}>${parseFloat(s.price).toFixed(2)}</span>
+                      <span style={{color:'var(--success)',fontWeight:700}}>
+                        {getCurrencyMeta(s.currency || 'USD').symbol}{parseFloat(s.price).toFixed(2)}
+                        <span style={{fontSize:'.78em',fontWeight:600,color:'var(--text-muted)',marginLeft:3}}>{s.currency || 'USD'}</span>
+                      </span>
                     </div>
                     <div className="provider-service-stats">
                       <span>⭐ {parseFloat(s.avg_rating||0).toFixed(1)} ({s.review_count} reviews)</span>
@@ -305,31 +322,60 @@ const ProviderDashboard = () => {
 
 // ─── Service Form Modal ───────────────────────────────────────────────────────
 const ServiceFormModal = ({ service, onClose, onSaved }) => {
+  const { rates } = useCurrency();
   const [form, setForm] = useState({
     title:          service?.title          || '',
     description:    service?.description    || '',
     category:       service?.category       || '',
     location:       service?.location       || '',
     price:          service?.price          || '',
+    currency:       service?.currency       || 'USD',
     duration_hours: service?.duration_hours || 1,
     team_count:     service?.team_count     || 1,
   });
-  const [imageFile, setImageFile] = useState(null);
-  const [preview,   setPreview]   = useState(
-    service?.image_url
-      ? (service.image_url.startsWith('/uploads') ? `http://localhost:5000${service.image_url}` : service.image_url)
-      : null
-  );
+
+  // Existing saved image URLs (from DB)
+  const existingUrls = (() => {
+    if (Array.isArray(service?.image_urls) && service.image_urls.length > 0) return service.image_urls;
+    if (service?.image_url) return [service.image_url];
+    return [];
+  })();
+
+  const [savedImages,   setSavedImages]   = useState(existingUrls);   // URLs already in DB
+  const [removedImages, setRemovedImages] = useState([]);              // URLs to delete on save
+  const [newFiles,      setNewFiles]      = useState([]);              // File objects to upload
+  const [newPreviews,   setNewPreviews]   = useState([]);              // Blob preview URLs
   const [loading, setLoading] = useState(false);
   const fileRef = useRef();
 
-  const handleChange     = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const totalCount = savedImages.length + newFiles.length;
+  const slotsLeft  = 7 - totalCount;
+
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setImageFile(file);
-    setPreview(URL.createObjectURL(file));
+    const files = Array.from(e.target.files || []);
+    const allowed = files.slice(0, slotsLeft);
+    if (files.length > slotsLeft) toast.error(`Maximum 7 images — only ${slotsLeft} slot(s) available`);
+    const previews = allowed.map(f => URL.createObjectURL(f));
+    setNewFiles(prev => [...prev, ...allowed]);
+    setNewPreviews(prev => [...prev, ...previews]);
+    e.target.value = '';
   };
+
+  const removeSaved = (url) => {
+    setSavedImages(prev => prev.filter(u => u !== url));
+    setRemovedImages(prev => [...prev, url]);
+  };
+
+  const removeNew = (idx) => {
+    URL.revokeObjectURL(newPreviews[idx]);
+    setNewFiles(prev => prev.filter((_, i) => i !== idx));
+    setNewPreviews(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const BASE_URL = 'http://localhost:5000';
+  const thumbSrc = (url) => url.startsWith('/uploads') ? `${BASE_URL}${url}` : url;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -337,7 +383,12 @@ const ServiceFormModal = ({ service, onClose, onSaved }) => {
     try {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-      if (imageFile) fd.append('image', imageFile);
+      // Append new image files
+      newFiles.forEach(f => fd.append('images', f));
+      // Tell backend which saved URLs to remove
+      if (removedImages.length > 0) {
+        fd.append('remove_image_urls', JSON.stringify(removedImages));
+      }
       if (service) {
         await API.put(`/services/${service.id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
         toast.success('Service updated!');
@@ -369,7 +420,7 @@ const ServiceFormModal = ({ service, onClose, onSaved }) => {
             <label className="form-label">Description</label>
             <textarea name="description" className="textarea" placeholder="Describe your service in detail..." value={form.description} onChange={handleChange} required rows={4} />
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'var(--space-4)'}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'var(--space-4)'}}>
             <div className="form-group">
               <label className="form-label">Category</label>
               <select name="category" className="select" value={form.category} onChange={handleChange} required>
@@ -378,10 +429,31 @@ const ServiceFormModal = ({ service, onClose, onSaved }) => {
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label">Price ($)</label>
+              <label className="form-label">Price</label>
               <input name="price" type="number" min="0" step="0.01" className="input" placeholder="0.00" value={form.price} onChange={handleChange} required />
             </div>
+            <div className="form-group">
+              <label className="form-label">Currency</label>
+              <select name="currency" className="select" value={form.currency} onChange={handleChange}>
+                {SUPPORTED_CURRENCIES.map(c => (
+                  <option key={c.code} value={c.code}>{c.flag} {c.code} — {c.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
+          {/* Live conversion preview */}
+          {form.price > 0 && (
+            <div className="sfm-conv-preview">
+              {SUPPORTED_CURRENCIES.filter(c => c.code !== form.currency).map(c => {
+                const converted = convertAmount(parseFloat(form.price), form.currency, c.code, rates);
+                return (
+                  <span key={c.code} className="sfm-conv-chip">
+                    {c.flag} ≈ {formatCurrency(converted, c.code)}
+                  </span>
+                );
+              })}
+            </div>
+          )}
 
           {/* Capacity Settings */}
           <div className="capacity-banner">
@@ -408,15 +480,40 @@ const ServiceFormModal = ({ service, onClose, onSaved }) => {
             <label className="form-label">Location</label>
             <input name="location" className="input" placeholder="e.g. New York, NY" value={form.location} onChange={handleChange} required />
           </div>
+
+          {/* Multi-image upload */}
           <div className="form-group">
-            <label className="form-label">Service Image</label>
-            <div className="upload-area" onClick={() => fileRef.current.click()}>
-              {preview
-                ? <img src={preview} alt="preview" style={{height:140,width:'100%',objectFit:'cover',borderRadius:'var(--radius-md)'}} />
-                : <div className="upload-placeholder"><span style={{fontSize:'2rem'}}>📷</span><p>Click to upload image</p><p style={{fontSize:'.75rem',color:'var(--text-muted)'}}>JPG, PNG, WebP — max 5MB</p></div>
-              }
+            <label className="form-label">Service Photos <span style={{color:'var(--text-muted)',fontWeight:400}}>({totalCount}/7)</span></label>
+            <div className="miu-grid">
+              {/* Existing saved images */}
+              {savedImages.map((url) => (
+                <div key={url} className="miu-cell">
+                  <img src={thumbSrc(url)} alt="service" className="miu-img" />
+                  <button type="button" className="miu-remove" onClick={() => removeSaved(url)}>✕</button>
+                </div>
+              ))}
+              {/* New file previews */}
+              {newPreviews.map((p, i) => (
+                <div key={i} className="miu-cell miu-new">
+                  <img src={p} alt="new" className="miu-img" />
+                  <button type="button" className="miu-remove" onClick={() => removeNew(i)}>✕</button>
+                  <span className="miu-new-badge">NEW</span>
+                </div>
+              ))}
+              {/* Add slot */}
+              {slotsLeft > 0 && (
+                <button type="button" className="miu-cell miu-add" onClick={() => fileRef.current.click()}>
+                  <span style={{fontSize:'1.8rem'}}>📷</span>
+                  <span style={{fontSize:'.72rem',color:'var(--text-muted)'}}>Add photo</span>
+                  <span style={{fontSize:'.65rem',color:'var(--text-muted)'}}>{slotsLeft} left</span>
+                </button>
+              )}
             </div>
-            <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleFileChange} />
+            <input
+              ref={fileRef} type="file" accept="image/*" multiple
+              style={{display:'none'}} onChange={handleFileChange}
+            />
+            <span className="form-hint">Up to 7 photos · JPG, PNG, WebP · max 5 MB each. First photo is the cover.</span>
           </div>
           <div style={{display:'flex',gap:'var(--space-3)',justifyContent:'flex-end'}}>
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
@@ -430,6 +527,8 @@ const ServiceFormModal = ({ service, onClose, onSaved }) => {
         .upload-placeholder { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--space-2); padding:var(--space-8); color:var(--text-muted); }
         .capacity-banner { display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) var(--space-4); background:rgba(14,165,233,.08); border:1px solid rgba(14,165,233,.2); border-radius:var(--radius-md); }
         .form-hint { font-size:.72rem; color:var(--text-muted); margin-top:4px; display:block; }
+        .sfm-conv-preview { display:flex; flex-wrap:wrap; gap:var(--space-2); padding:var(--space-2) 0; }
+        .sfm-conv-chip { font-size:.78rem; font-weight:600; padding:4px 10px; background:linear-gradient(135deg,rgba(108,99,255,.08),rgba(14,165,233,.08)); border:1px solid rgba(108,99,255,.2); border-radius:var(--radius-full); color:var(--text-secondary); white-space:nowrap; }
       `}</style>
     </div>
   );

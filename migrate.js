@@ -164,6 +164,35 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read, created_at DESC);
+
+-- ── Service multi-image gallery ───────────────────────────────────────────────
+ALTER TABLE services
+  ADD COLUMN IF NOT EXISTS image_urls TEXT[] NOT NULL DEFAULT '{}';
+
+-- ── Multi-Currency Support ─────────────────────────────────────────────────────
+-- Provider sets price in their preferred currency
+ALTER TABLE services
+  ADD COLUMN IF NOT EXISTS currency VARCHAR(3) NOT NULL DEFAULT 'USD';
+
+-- Currency fields on bookings (customer payment currency + conversion snapshot)
+ALTER TABLE bookings
+  ADD COLUMN IF NOT EXISTS payment_currency VARCHAR(3),
+  ADD COLUMN IF NOT EXISTS converted_price  NUMERIC(12,2),
+  ADD COLUMN IF NOT EXISTS exchange_rate     NUMERIC(18,8);
+
+-- Payments table: full audit trail of every booking's currency conversion
+CREATE TABLE IF NOT EXISTS payments (
+  id                SERIAL PRIMARY KEY,
+  booking_id        INT           NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+  original_price    NUMERIC(12,2) NOT NULL,
+  original_currency VARCHAR(3)    NOT NULL,
+  converted_price   NUMERIC(12,2) NOT NULL,
+  payment_currency  VARCHAR(3)    NOT NULL,
+  exchange_rate     NUMERIC(18,8) NOT NULL,
+  created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_payments_booking ON payments(booking_id);
 `;
 
 async function migrate() {
@@ -186,6 +215,10 @@ async function migrate() {
     console.log('✅  service_schedules table               — OK');
     console.log('✅  service_blocked_dates table           — OK');
     console.log('✅  notifications table                   — OK');
+    console.log('✅  services.image_urls                   — OK');
+    console.log('✅  services.currency                     — OK');
+    console.log('✅  bookings.payment_currency/rate         — OK');
+    console.log('✅  payments table                         — OK');
     console.log('\n🎉 All migrations applied successfully!\n');
   } catch (err) {
     console.error('\n❌ Migration failed:', err.message);
