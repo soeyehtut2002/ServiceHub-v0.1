@@ -4,6 +4,7 @@ import API from '../api/axios';
 import StatusBadge from '../components/StatusBadge';
 import toast from 'react-hot-toast';
 import { getCurrencyMeta, formatCurrency, formatAllCurrencies } from '../utils/currency';
+import { BarChart2, Users, Wrench, Calendar, Star, MessageSquare, Eye, Lock, Unlock, Trash2, Flag, X, Package, MapPin, FileText, Clock, Tag, ShieldCheck, User, CheckCheck } from 'lucide-react';
 
 const AdminDashboard = () => {
   const [tab, setTab] = useState('overview');
@@ -15,21 +16,21 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState('');
   // Chats
-  const [conversations,    setConversations]    = useState([]);
-  const [activeThread,     setActiveThread]     = useState(null);
-  const [threadMessages,   setThreadMessages]   = useState([]);
-  const [threadLoading,    setThreadLoading]    = useState(false);
-  const [chatSearch,       setChatSearch]       = useState('');
+  const [conversations, setConversations] = useState([]);
+  const [activeThread, setActiveThread] = useState(null);
+  const [threadMessages, setThreadMessages] = useState([]);
+  const [threadLoading, setThreadLoading] = useState(false);
+  const [chatSearch, setChatSearch] = useState('');
   const threadEndRef = useRef(null);
   // Booking chat modal
   const [bookingChat, setBookingChat] = useState(null); // { booking, messages, loading }
 
-  const fetchStats    = async () => { try { const r = await API.get('/admin/stats');    setStats(r.data);    } catch { toast.error('Failed to load stats'); } };
-  const fetchUsers    = async () => { try { const r = await API.get('/admin/users');    setUsers(r.data);    } catch { toast.error('Failed to load users'); } };
+  const fetchStats = async () => { try { const r = await API.get('/admin/stats'); setStats(r.data); } catch { toast.error('Failed to load stats'); } };
+  const fetchUsers = async () => { try { const r = await API.get('/admin/users'); setUsers(r.data); } catch { toast.error('Failed to load users'); } };
   const fetchServices = async () => { try { const r = await API.get('/admin/services'); setServices(r.data); } catch { toast.error('Failed to load services'); } };
   const fetchBookings = async () => { try { const r = await API.get('/admin/bookings'); setBookings(r.data); } catch { toast.error('Failed to load bookings'); } };
-  const fetchReviews  = async () => { try { const r = await API.get('/admin/reviews');  setReviews(r.data);  } catch { toast.error('Failed to load reviews'); } };
-  const fetchChats    = async () => { try { const r = await API.get('/admin/chats');    setConversations(r.data); } catch { toast.error('Failed to load conversations'); } };
+  const fetchReviews = async () => { try { const r = await API.get('/admin/reviews'); setReviews(r.data); } catch { toast.error('Failed to load reviews'); } };
+  const fetchChats = async () => { try { const r = await API.get('/admin/chats'); setConversations(r.data); } catch { toast.error('Failed to load conversations'); } };
 
   const openThread = async (conv) => {
     setActiveThread(conv);
@@ -56,11 +57,11 @@ const AdminDashboard = () => {
 
   useEffect(() => { const load = async () => { setLoading(true); await fetchStats(); setLoading(false); }; load(); }, []);
   useEffect(() => {
-    if (tab === 'users')    fetchUsers();
+    if (tab === 'users') fetchUsers();
     if (tab === 'services') fetchServices();
     if (tab === 'bookings') fetchBookings();
-    if (tab === 'reviews')  fetchReviews();
-    if (tab === 'chats')    fetchChats();
+    if (tab === 'reviews') fetchReviews();
+    if (tab === 'chats') fetchChats();
   }, [tab]);
 
   const handleToggleUser = async (id) => {
@@ -109,19 +110,19 @@ const AdminDashboard = () => {
   );
 
   const TABS = [
-    { key: 'overview', label: '📊 Overview' },
-    { key: 'users',    label: '👥 Users' },
-    { key: 'services', label: '🛠️ Services' },
-    { key: 'bookings', label: '📅 Bookings' },
-    { key: 'reviews',  label: '⭐ Reviews' },
-    { key: 'chats',    label: '💬 Chats' },
+    { key: 'overview', Icon: BarChart2,     label: 'Overview' },
+    { key: 'users',    Icon: Users,         label: 'Users' },
+    { key: 'services', Icon: Wrench,        label: 'Services' },
+    { key: 'bookings', Icon: Calendar,      label: 'Bookings' },
+    { key: 'reviews',  Icon: Star,          label: 'Reviews' },
+    { key: 'chats',    Icon: MessageSquare, label: 'Chats' },
   ];
 
   return (
     <div className="page-wrapper">
       <div className="page-header">
         <div className="container">
-          <h1 className="h2">👑 Admin Dashboard</h1>
+          <h1 className="h2"> Admin Dashboard</h1>
           <p className="text-muted mt-2">Platform management &amp; analytics</p>
         </div>
       </div>
@@ -130,8 +131,8 @@ const AdminDashboard = () => {
         {/* Tabs */}
         <div className="tabs mb-8" style={{ maxWidth: 680 }}>
           {TABS.map(t => (
-            <button key={t.key} className={`tab-btn ${tab === t.key ? 'active' : ''}`} onClick={() => setTab(t.key)}>
-              {t.label}
+            <button key={t.key} className={`tab-btn ${tab === t.key ? 'active' : ''}`} onClick={() => setTab(t.key)} style={{display:'inline-flex',alignItems:'center',gap:6}}>
+              <t.Icon size={14} strokeWidth={2}/>{t.label}
             </button>
           ))}
         </div>
@@ -145,13 +146,13 @@ const AdminDashboard = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
                 <div className="grid-4 grid">
                   {[
-                    { label: 'Total Users',     value: stats.totals.users,    icon: '👥', color: '#00FFFF' },
-                    { label: 'Active Services', value: stats.totals.services, icon: '🛠️', color: '#00D4AA' },
-                    { label: 'Total Bookings',  value: stats.totals.bookings, icon: '📅', color: '#0080FF' },
-                    { label: 'Total Reviews',   value: stats.totals.reviews,  icon: '⭐', color: '#FFBE0B' },
+                    { label: 'Total Users',     value: stats.totals.users,    Icon: Users,    color: '#00FFFF' },
+                    { label: 'Active Services', value: stats.totals.services, Icon: Wrench,   color: '#00D4AA' },
+                    { label: 'Total Bookings',  value: stats.totals.bookings, Icon: Calendar, color: '#0080FF' },
+                    { label: 'Total Reviews',   value: stats.totals.reviews,  Icon: Star,     color: '#FFBE0B' },
                   ].map(s => (
                     <div key={s.label} className="stat-card aqua-glow" style={{ borderColor: `${s.color}30` }}>
-                      <div className="stat-icon" style={{ background: `${s.color}18` }}>{s.icon}</div>
+                      <div className="stat-icon" style={{ background: `${s.color}18` }}><s.Icon size={24} color={s.color} strokeWidth={1.8}/></div>
                       <div><div className="stat-value" style={{ color: s.color }}>{s.value}</div><div className="stat-label">{s.label}</div></div>
                     </div>
                   ))}
@@ -160,7 +161,7 @@ const AdminDashboard = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-6)' }}>
                   {/* Bookings by Status */}
                   <div className="card" style={{ padding: 'var(--space-6)' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-5)', color: 'var(--primary)' }}>📊 Bookings by Status</h3>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-5)', color: 'var(--primary)', display:'flex', alignItems:'center', gap:7 }}><BarChart2 size={15} strokeWidth={2}/>Bookings by Status</h3>
                     {stats.bookingsByStatus.map(s => {
                       const total = stats.totals.bookings || 1;
                       const pct = Math.round((parseInt(s.count) / total) * 100);
@@ -181,7 +182,7 @@ const AdminDashboard = () => {
 
                   {/* Categories */}
                   <div className="card" style={{ padding: 'var(--space-6)' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-5)', color: 'var(--primary)' }}>🏷️ Services by Category</h3>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-5)', color: 'var(--primary)', display:'flex', alignItems:'center', gap:7 }}><Tag size={15} strokeWidth={2}/>Services by Category</h3>
                     {stats.categoryStats.length === 0 ? (
                       <p style={{ color: 'var(--text-muted)', fontSize: '.85rem' }}>No services yet</p>
                     ) : stats.categoryStats.map((c, i) => (
@@ -198,7 +199,7 @@ const AdminDashboard = () => {
 
                 {/* Recent Bookings */}
                 <div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-4)', color: 'var(--primary)' }}>🕐 Recent Bookings</h3>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-4)', color: 'var(--primary)', display:'flex', alignItems:'center', gap:7 }}><Clock size={15} strokeWidth={2}/>Recent Bookings</h3>
                   <div className="table-wrapper">
                     <table className="table">
                       <thead><tr><th>Customer</th><th>Service</th><th>Date</th><th>Status</th></tr></thead>
@@ -245,11 +246,11 @@ const AdminDashboard = () => {
                         <td style={{ fontSize: '.8rem', color: 'var(--text-muted)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
                         <td>
                           <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-                            <Link to={`/profile/${u.id}`} className="btn btn-ghost btn-sm" title="View full profile">👁️</Link>
+                            <Link to={`/profile/${u.id}`} className="btn btn-ghost btn-sm" title="View full profile" style={{display:'inline-flex',alignItems:'center',gap:4}}><Eye size={13} strokeWidth={2}/></Link>
                             <button className={`btn btn-sm ${u.is_active ? 'btn-danger' : 'btn-success'}`} onClick={() => handleToggleUser(u.id)}>
-                              {u.is_active ? '🔒 Deactivate' : '🔓 Activate'}
+                              {u.is_active ? <><Lock size={12} strokeWidth={2}/>Deactivate</> : <><Unlock size={12} strokeWidth={2}/>Activate</>}
                             </button>
-                            {u.role !== 'admin' && <button className="btn btn-danger btn-sm" onClick={() => handleDeleteUser(u.id)}>🗑️</button>}
+                            {u.role !== 'admin' && <button className="btn btn-danger btn-sm" onClick={() => handleDeleteUser(u.id)} style={{display:'inline-flex',alignItems:'center'}}><Trash2 size={13} strokeWidth={2}/></button>}
                           </div>
                         </td>
                       </tr>
@@ -295,12 +296,12 @@ const AdminDashboard = () => {
                                 ≈ {altFormatted[altCur.toLowerCase()]} {altCur}
                               </div>
                             </td>
-                            <td>⭐ {parseFloat(s.avg_rating || 0).toFixed(1)} ({s.review_count})</td>
+                            <td style={{display:'flex',alignItems:'center',gap:4}}><Star size={12} strokeWidth={2} fill="#F59E0B" color="#F59E0B"/>{parseFloat(s.avg_rating || 0).toFixed(1)} <span style={{color:'var(--text-muted)'}}>({s.review_count})</span></td>
                             <td>{s.booking_count}</td>
                             <td>
                               <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                                 <Link to={`/services/${s.id}`} className="btn btn-ghost btn-sm">View</Link>
-                                <button className="btn btn-danger btn-sm" onClick={() => handleDeleteService(s.id)}>🗑️</button>
+                                <button className="btn btn-danger btn-sm" onClick={() => handleDeleteService(s.id)} style={{display:'inline-flex',alignItems:'center'}}><Trash2 size={13} strokeWidth={2}/></button>
                               </div>
                             </td>
                           </tr>
@@ -319,42 +320,34 @@ const AdminDashboard = () => {
                   <thead><tr><th>Customer</th><th>Service</th><th>Provider</th><th>Date</th><th>Price</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead>
                   <tbody>
                     {bookings.map(b => {
-                      const nativeCur  = b.currency || 'USD';
+                      const nativeCur = b.currency || 'USD';
                       const nativeMeta = getCurrencyMeta(nativeCur);
                       return (
                         <tr key={b.id}>
-                          <td style={{fontWeight:600}}>{b.customer_name}</td>
+                          <td style={{ fontWeight: 600 }}>{b.customer_name}</td>
                           <td>{b.service_title}</td>
                           <td>{b.provider_name}</td>
                           <td>{new Date(b.booking_date).toLocaleDateString()}</td>
                           <td>
-                            <div style={{color:'var(--primary)',fontWeight:700}}>
-                              {nativeMeta.symbol}{parseFloat(b.price).toLocaleString('en-US',{maximumFractionDigits:nativeCur==='USD'?2:0})}
-                              <span style={{fontSize:'.72em',color:'var(--text-muted)',marginLeft:3}}>{nativeCur}</span>
+                            <div style={{ color: 'var(--primary)', fontWeight: 700 }}>
+                              {nativeMeta.symbol}{parseFloat(b.price).toLocaleString('en-US', { maximumFractionDigits: nativeCur === 'USD' ? 2 : 0 })}
+                              <span style={{ fontSize: '.72em', color: 'var(--text-muted)', marginLeft: 3 }}>{nativeCur}</span>
                             </div>
                             {b.converted_price && b.payment_currency && b.payment_currency !== nativeCur && (
-                              <div style={{fontSize:'0.7rem',color:'var(--text-muted)'}}>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                                 paid: {getCurrencyMeta(b.payment_currency).symbol}
-                                {parseFloat(b.converted_price).toLocaleString('en-US',{maximumFractionDigits:b.payment_currency==='USD'?2:0})}
+                                {parseFloat(b.converted_price).toLocaleString('en-US', { maximumFractionDigits: b.payment_currency === 'USD' ? 2 : 0 })}
                                 {' '}{b.payment_currency}
                               </div>
                             )}
                           </td>
-                          <td style={{fontSize:'.8rem',color:'var(--text-secondary)',maxWidth:140}}>{b.location || <span style={{color:'var(--text-muted)'}}>—</span>}</td>
-                          <td><StatusBadge status={b.status}/></td>
+                          <td style={{ fontSize: '.8rem', color: 'var(--text-secondary)', maxWidth: 140 }}>{b.location || <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
+                          <td><StatusBadge status={b.status} /></td>
                           <td>
-                            <div style={{display:'flex',gap:'var(--space-2)',flexWrap:'wrap'}}>
-                              <button
-                                className="btn btn-ghost btn-sm"
-                                onClick={() => openBookingChat(b)}
-                                title="View chat between customer & provider for this booking"
-                              >💬 Chat</button>
-                              {!['cancelled','completed'].includes(b.status) && (
-                                <button
-                                  className="btn btn-danger btn-sm"
-                                  onClick={() => handleAdminCancel(b.id)}
-                                  title="Admin cancel this booking"
-                                >❌ Cancel</button>
+                            <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                              <button className="btn btn-ghost btn-sm" onClick={() => openBookingChat(b)} title="View chat" style={{display:'inline-flex',alignItems:'center',gap:4}}><MessageSquare size={13} strokeWidth={2}/>Chat</button>
+                              {!['cancelled', 'completed'].includes(b.status) && (
+                                <button className="btn btn-danger btn-sm" onClick={() => handleAdminCancel(b.id)} title="Admin cancel" style={{display:'inline-flex',alignItems:'center',gap:4}}><X size={13} strokeWidth={2.5}/>Cancel</button>
                               )}
                             </div>
                           </td>
@@ -380,13 +373,13 @@ const AdminDashboard = () => {
                             {r.service_title}
                           </Link>
                         </td>
-                        <td>{'⭐'.repeat(r.rating)} <span style={{ fontSize: '.8rem', color: 'var(--text-muted)' }}>({r.rating}/5)</span></td>
+                        <td>{Array.from({length:r.rating},(_,i)=><Star key={i} size={12} strokeWidth={2} fill="#F59E0B" color="#F59E0B"/>)} <span style={{ fontSize: '.8rem', color: 'var(--text-muted)' }}>({r.rating}/5)</span></td>
                         <td style={{ maxWidth: 200, fontSize: '.85rem', color: 'var(--text-secondary)' }}>
                           {r.comment ? <span className="truncate" style={{ display: 'block', maxWidth: 180 }}>{r.comment}</span> : <span style={{ color: 'var(--text-muted)' }}>—</span>}
                         </td>
                         <td>
                           {r.is_flagged
-                            ? <span className="badge badge-danger">🚩 Flagged</span>
+                            ? <span className="badge badge-danger" style={{display:'inline-flex',alignItems:'center',gap:4}}><Flag size={11} strokeWidth={2}/>Flagged</span>
                             : <span className="badge badge-muted">Clear</span>}
                         </td>
                         <td style={{ fontSize: '.8rem', color: 'var(--text-muted)' }}>{new Date(r.created_at).toLocaleDateString()}</td>
@@ -396,15 +389,15 @@ const AdminDashboard = () => {
                               className={`btn btn-sm ${r.is_flagged ? 'btn-ghost' : 'btn-outline'}`}
                               onClick={() => handleFlagReview(r.id)}
                               title={r.is_flagged ? 'Remove flag' : 'Flag review'}
-                            >{r.is_flagged ? '🏳️ Unflag' : '🚩 Flag'}</button>
-                            <button className="btn btn-danger btn-sm" onClick={() => handleDeleteReview(r.id)}>🗑️</button>
+                             style={{display:'inline-flex',alignItems:'center',gap:4}}>{r.is_flagged ? <><Flag size={12} strokeWidth={2}/>Unflag</> : <><Flag size={12} strokeWidth={2} fill="currentColor"/>Flag</>}</button>
+                            <button className="btn btn-danger btn-sm" onClick={() => handleDeleteReview(r.id)} style={{display:'inline-flex',alignItems:'center'}}><Trash2 size={13} strokeWidth={2}/></button>
                           </div>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                {reviews.length === 0 && <div className="empty-state"><div className="empty-icon">⭐</div><p>No reviews yet</p></div>}
+                {reviews.length === 0 && <div className="empty-state"><div className="empty-icon" style={{display:'flex',justifyContent:'center',opacity:0.4}}><Star size={40} strokeWidth={1.5}/></div><p>No reviews yet</p></div>}
               </div>
             )}
             {tab === 'chats' && (
@@ -412,7 +405,7 @@ const AdminDashboard = () => {
                 {/* Left: conversation list */}
                 <div className="adm-chat-sidebar">
                   <div className="adm-chat-sidebar-header">
-                    <h3>💬 All Conversations</h3>
+                    <h3 style={{display:'flex',alignItems:'center',gap:6}}><MessageSquare size={15} strokeWidth={2}/>All Conversations</h3>
                     <span className="badge badge-primary">{conversations.length}</span>
                   </div>
                   <input
@@ -473,7 +466,7 @@ const AdminDashboard = () => {
                 <div className="adm-chat-thread">
                   {!activeThread ? (
                     <div className="adm-thread-empty">
-                      <div style={{ fontSize: '3rem' }}>💬</div>
+                      <div style={{ display:'flex',justifyContent:'center',opacity:0.4 }}><MessageSquare size={48} strokeWidth={1.5}/></div>
                       <p>Select a conversation to view messages</p>
                     </div>
                   ) : (
@@ -492,7 +485,7 @@ const AdminDashboard = () => {
                             {' · '}{threadMessages.length} messages
                           </div>
                         </div>
-                        <span className="badge badge-muted">🔒 Read-only</span>
+                        <span className="badge badge-muted" style={{display:'inline-flex',alignItems:'center',gap:4}}><Lock size={11} strokeWidth={2}/>Read-only</span>
                       </div>
 
                       <div className="adm-thread-messages">
@@ -516,7 +509,7 @@ const AdminDashboard = () => {
                                     <span className="adm-msg-time">
                                       {new Date(msg.created_at).toLocaleString()}
                                     </span>
-                                    {msg.is_read && <span className="adm-msg-read">✓✓ Read</span>}
+                                    {msg.is_read && <span className="adm-msg-read">Read</span>}
                                   </div>
                                   <div className="adm-msg-bubble" style={{ borderColor: `${roleColor}40` }}>
                                     {msg.content}
@@ -546,61 +539,61 @@ const AdminDashboard = () => {
             {/* Header */}
             <div className="bcm-header">
               <div className="bcm-header-left">
-                <span className="bcm-icon">💬</span>
+                <span className="bcm-icon" style={{display:'flex',alignItems:'center'}}><MessageSquare size={22} strokeWidth={1.8}/></span>
                 <div>
                   <div className="bcm-title">Booking Chat — {bookingChat.booking.service_title}</div>
                   <div className="bcm-subtitle">
-                    <span style={{color:ROLE_COLORS.customer}}>👤 {bookingChat.booking.customer_name}</span>
-                    <span style={{color:'var(--text-muted)',margin:'0 6px'}}>↔</span>
-                    <span style={{color:ROLE_COLORS.provider}}>🔧 {bookingChat.booking.provider_name}</span>
+                    <span style={{ color: ROLE_COLORS.customer, display:'inline-flex', alignItems:'center', gap:4 }}><User size={13} strokeWidth={2}/>{bookingChat.booking.customer_name}</span>
+                    <span style={{ color: 'var(--text-muted)', margin: '0 6px' }}>↔</span>
+                    <span style={{ color: ROLE_COLORS.provider, display:'inline-flex', alignItems:'center', gap:4 }}><Wrench size={13} strokeWidth={2}/>{bookingChat.booking.provider_name}</span>
                     <span className="bcm-dot">·</span>
-                    <span style={{color:'var(--text-muted)'}}>{new Date(bookingChat.booking.booking_date).toLocaleDateString()}</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{new Date(bookingChat.booking.booking_date).toLocaleDateString()}</span>
                     <span className="bcm-dot">·</span>
                     <StatusBadge status={bookingChat.booking.status} />
                   </div>
                 </div>
               </div>
-              <div style={{display:'flex',alignItems:'center',gap:'var(--space-3)'}}>
-                <span className="badge badge-muted">🔒 Read-only</span>
-                <button className="bcm-close" onClick={() => setBookingChat(null)}>✕</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                <span className="badge badge-muted" style={{display:'inline-flex',alignItems:'center',gap:4}}><Lock size={11} strokeWidth={2}/>Read-only</span>
+                <button className="bcm-close" onClick={() => setBookingChat(null)}><X size={16} strokeWidth={2.5}/></button>
               </div>
             </div>
 
             {/* Info bar */}
             <div className="bcm-info-bar">
-              <span>📦 Booking #{bookingChat.booking.id}</span>
-              <span>📍 {bookingChat.booking.location || 'No location'}</span>
-              {bookingChat.booking.notes && <span>📝 {bookingChat.booking.notes}</span>}
-              <span>💬 {bookingChat.messages.length} messages</span>
+              <span style={{display:'inline-flex',alignItems:'center',gap:4}}><Package size={13} strokeWidth={2}/>Booking #{bookingChat.booking.id}</span>
+              <span style={{display:'inline-flex',alignItems:'center',gap:4}}><MapPin size={13} strokeWidth={2}/>{bookingChat.booking.location || 'No location'}</span>
+              {bookingChat.booking.notes && <span style={{display:'inline-flex',alignItems:'center',gap:4}}><FileText size={13} strokeWidth={2}/>{bookingChat.booking.notes}</span>}
+              <span style={{display:'inline-flex',alignItems:'center',gap:4}}><MessageSquare size={13} strokeWidth={2}/>{bookingChat.messages.length} messages</span>
             </div>
 
             {/* Messages */}
             <div className="bcm-messages">
               {bookingChat.loading ? (
-                <div className="spinner-container" style={{minHeight:200}}><div className="spinner"/></div>
+                <div className="spinner-container" style={{ minHeight: 200 }}><div className="spinner" /></div>
               ) : bookingChat.messages.length === 0 ? (
                 <div className="bcm-no-msgs">
-                  <div style={{fontSize:'2.5rem'}}>💭</div>
+                  <div style={{ display:'flex',justifyContent:'center',opacity:0.4 }}><MessageSquare size={36} strokeWidth={1.5}/></div>
                   <p>No messages between these users yet.</p>
-                  <p style={{fontSize:'.8rem',color:'var(--text-muted)'}}>They may not have communicated through the platform chat.</p>
+                  <p style={{ fontSize: '.8rem', color: 'var(--text-muted)' }}>They may not have communicated through the platform chat.</p>
                 </div>
               ) : (
                 bookingChat.messages.map(msg => {
                   const isCustomer = msg.sender_id === bookingChat.booking.customer_id;
-                  const roleColor  = isCustomer ? ROLE_COLORS.customer : ROLE_COLORS.provider;
+                  const roleColor = isCustomer ? ROLE_COLORS.customer : ROLE_COLORS.provider;
                   return (
                     <div key={msg.id} className={`adm-msg-row ${isCustomer ? 'row-left' : 'row-right'}`}>
-                      <div className="adm-msg-av" style={{background:`${roleColor}22`,color:roleColor}}>
+                      <div className="adm-msg-av" style={{ background: `${roleColor}22`, color: roleColor }}>
                         {msg.sender_name[0]?.toUpperCase()}
                       </div>
                       <div className="adm-msg-body">
                         <div className="adm-msg-meta">
-                          <span style={{color:roleColor,fontWeight:700}}>{msg.sender_name}</span>
+                          <span style={{ color: roleColor, fontWeight: 700 }}>{msg.sender_name}</span>
                           <span className="adm-msg-role">{msg.sender_role}</span>
                           <span className="adm-msg-time">{new Date(msg.created_at).toLocaleString()}</span>
-                          {msg.is_read && <span className="adm-msg-read">✓✓ Read</span>}
+                          {msg.is_read && <span className="adm-msg-read">Read</span>}
                         </div>
-                        <div className="adm-msg-bubble" style={{borderColor:`${roleColor}40`}}>
+                        <div className="adm-msg-bubble" style={{ borderColor: `${roleColor}40` }}>
                           {msg.content}
                         </div>
                       </div>

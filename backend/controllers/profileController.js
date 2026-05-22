@@ -19,7 +19,7 @@ const getPublicProfile = async (req, res) => {
     // If provider, include their services + aggregate review stats
     if (profile.role === 'provider') {
       const services = await db.query(
-        `SELECT s.id, s.title, s.category, s.price, s.image_url,
+        `SELECT s.id, s.title, s.category, s.price, s.currency, s.image_url,
                 s.availability_status, s.location AS service_location,
                 s.description,
                 COALESCE(ROUND(AVG(r.rating),1),0) AS avg_rating,

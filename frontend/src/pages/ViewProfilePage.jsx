@@ -3,6 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import API from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
+import { ShieldCheck, MapPin, Calendar, MessageSquare, Star, Mail, Phone, Key, BarChart2, Lock, Wrench, Image, ZoomIn, X, User } from 'lucide-react';
+import { getCurrencyMeta } from '../utils/currency';
 
 const BASE_URL = 'http://localhost:5000';
 
@@ -77,7 +79,7 @@ const ViewProfilePage = () => {
                 : <div className="vp-avatar-placeholder">{profile.name?.[0]?.toUpperCase()}</div>
               }
               {profile.is_verified && (
-                <span className="vp-verified-ring" title="Verified">✓</span>
+                <span className="vp-verified-ring" title="Verified"><ShieldCheck size={14} strokeWidth={2.5}/></span>
               )}
             </div>
 
@@ -86,7 +88,7 @@ const ViewProfilePage = () => {
               <div className="vp-name-row">
                 <h1 className="vp-name">{profile.name}</h1>
                 {profile.is_verified && (
-                  <span className="badge badge-success" style={{ fontSize: '.72rem' }}>✓ Verified</span>
+                  <span className="badge badge-success" style={{ fontSize: '.72rem', display:'inline-flex', alignItems:'center', gap:4 }}><ShieldCheck size={11} strokeWidth={2.5}/>Verified</span>
                 )}
               </div>
               <div className="vp-badges">
@@ -99,19 +101,15 @@ const ViewProfilePage = () => {
                 )}
               </div>
               <div className="vp-meta-row">
-                {profile.location && <span className="vp-meta-chip">📍 {profile.location}</span>}
-                <span className="vp-meta-chip">
-                  🗓 Member since {new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                </span>
+                {profile.location && <span className="vp-meta-chip" style={{display:'inline-flex',alignItems:'center',gap:5}}><MapPin size={12} strokeWidth={2}/>{profile.location}</span>}
+                <span className="vp-meta-chip" style={{display:'inline-flex',alignItems:'center',gap:5}}><Calendar size={12} strokeWidth={2}/>Member since {new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
               </div>
             </div>
 
             {/* Action buttons */}
             <div className="vp-actions">
               {user?.id !== parseInt(id) && (
-                <Link to={`/chat/${id}`} className="btn btn-primary">
-                  💬 Send Message
-                </Link>
+                <Link to={`/chat/${id}`} className="btn btn-primary" style={{display:'inline-flex',alignItems:'center',gap:8}}><MessageSquare size={15} strokeWidth={2}/>Send Message</Link>
               )}
               <button className="btn btn-ghost" onClick={() => navigate(-1)}>← Back</button>
             </div>
@@ -130,7 +128,7 @@ const ViewProfilePage = () => {
             </div>
             <div className="vp-stat-divider" />
             <div className="vp-stat">
-              <span className="vp-stat-value">⭐ {parseFloat(stats.overall_rating || 0).toFixed(1)}</span>
+              <span className="vp-stat-value" style={{display:'inline-flex',alignItems:'center',gap:4}}><Star size={16} strokeWidth={2} color="#F59E0B" fill="#F59E0B"/>{parseFloat(stats.overall_rating || 0).toFixed(1)}</span>
               <span className="vp-stat-label">Avg Rating</span>
             </div>
             <div className="vp-stat-divider" />
@@ -165,19 +163,19 @@ const ViewProfilePage = () => {
               <div className="vp-info-list">
                 {profile.location && (
                   <div className="vp-info-row">
-                    <span className="vp-info-icon">📍</span>
+                    <span className="vp-info-icon"><MapPin size={15} strokeWidth={2}/></span>
                     <span>{profile.location}</span>
                   </div>
                 )}
                 {isAdmin && profile.email && (
                   <div className="vp-info-row">
-                    <span className="vp-info-icon">✉️</span>
+                    <span className="vp-info-icon"><Mail size={15} strokeWidth={2}/></span>
                     <span>{profile.email}</span>
                   </div>
                 )}
                 {isAdmin && profile.phone && (
                   <div className="vp-info-row">
-                    <span className="vp-info-icon">📞</span>
+                    <span className="vp-info-icon"><Phone size={15} strokeWidth={2}/></span>
                     <span>{profile.phone}</span>
                   </div>
                 )}
@@ -190,18 +188,18 @@ const ViewProfilePage = () => {
             {/* Admin controls */}
             {isAdmin && (
               <div className="vp-card vp-admin-card">
-                <h3 className="vp-card-title">🔑 Admin Info</h3>
+                <h3 className="vp-card-title" style={{display:'flex',alignItems:'center',gap:6}}><Key size={14} strokeWidth={2}/>Admin Info</h3>
                 <div className="vp-info-list">
                   <div className="vp-info-row">
-                    <span className="vp-info-icon">🆔</span>
+                    <span className="vp-info-icon" style={{fontWeight:900,fontSize:'.75rem'}}>#</span>
                     <span>User ID: <strong>{profile.id}</strong></span>
                   </div>
                   <div className="vp-info-row">
-                    <span className="vp-info-icon">📊</span>
+                    <span className="vp-info-icon"><BarChart2 size={15} strokeWidth={2}/></span>
                     <span>Status: <span className={`badge ${profile.is_active ? 'badge-success' : 'badge-danger'}`}>{profile.is_active ? 'Active' : 'Inactive'}</span></span>
                   </div>
                   <div className="vp-info-row">
-                    <span className="vp-info-icon">🔐</span>
+                    <span className="vp-info-icon"><Lock size={15} strokeWidth={2}/></span>
                     <span>Role: <span className="badge badge-primary">{profile.role}</span></span>
                   </div>
                 </div>
@@ -218,7 +216,7 @@ const ViewProfilePage = () => {
             {/* Services (providers only) */}
             {isProvider && profile.services && profile.services.length > 0 && (
               <div>
-                <h2 className="vp-section-title">🛠️ Services</h2>
+                <h2 className="vp-section-title" style={{display:'flex',alignItems:'center',gap:8}}><Wrench size={18} strokeWidth={2}/>Services</h2>
                 <div className="vp-services-grid">
                   {profile.services.map(svc => {
                     const avail = AVAIL_MAP[svc.availability_status] || AVAIL_MAP.available;
@@ -232,12 +230,12 @@ const ViewProfilePage = () => {
                           <div className="vp-service-category">{svc.category}</div>
                           <h4 className="vp-service-title">{svc.title}</h4>
                           {svc.service_location && (
-                            <p className="vp-service-loc">📍 {svc.service_location}</p>
+                            <p className="vp-service-loc" style={{display:'flex',alignItems:'center',gap:4}}><MapPin size={11} strokeWidth={2}/>{svc.service_location}</p>
                           )}
                           <div className="vp-service-footer">
-                            <span className="vp-service-price">${parseFloat(svc.price).toFixed(2)}</span>
-                            <span className="vp-service-rating">
-                              ⭐ {parseFloat(svc.avg_rating || 0).toFixed(1)}
+                            <span className="vp-service-price">{(() => { const cur = svc.currency || 'USD'; const meta = getCurrencyMeta(cur); return `${meta.symbol}${parseFloat(svc.price).toLocaleString('en-US', { maximumFractionDigits: cur === 'USD' ? 2 : 0 })} ${cur}`; })()}</span>
+                            <span className="vp-service-rating" style={{display:'inline-flex',alignItems:'center',gap:4}}>
+                              <Star size={12} strokeWidth={2} fill="#F59E0B" color="#F59E0B"/>{parseFloat(svc.avg_rating || 0).toFixed(1)}
                               <span style={{ color: 'var(--text-muted)', fontSize: '.72rem' }}> ({svc.review_count})</span>
                             </span>
                           </div>
@@ -252,7 +250,7 @@ const ViewProfilePage = () => {
             {isProvider && (!profile.services || profile.services.length === 0) && (
               <div className="vp-card">
                 <div className="empty-state" style={{ minHeight: 120 }}>
-                  <div className="empty-icon">🛠️</div>
+                  <div className="empty-icon" style={{display:'flex',justifyContent:'center',opacity:0.4}}><Wrench size={40} strokeWidth={1.5}/></div>
                   <p>This provider hasn't listed any services yet.</p>
                 </div>
               </div>
@@ -261,7 +259,7 @@ const ViewProfilePage = () => {
             {/* Photo Gallery */}
             {profile.gallery_urls && profile.gallery_urls.length > 0 && (
               <div>
-                <h2 className="vp-section-title">🖼️ Photo Gallery</h2>
+                <h2 className="vp-section-title" style={{display:'flex',alignItems:'center',gap:8}}><Image size={18} strokeWidth={2}/>Photo Gallery</h2>
                 <div className="vp-gallery-grid">
                   {profile.gallery_urls.map((url, i) => (
                     <div
@@ -273,7 +271,7 @@ const ViewProfilePage = () => {
                         src={url.startsWith('/uploads') ? `${BASE_URL}${url}` : url}
                         alt={`Gallery ${i + 1}`}
                       />
-                      <div className="vp-gallery-overlay">🔍</div>
+                      <div className="vp-gallery-overlay" style={{fontSize:'unset'}}><ZoomIn size={28} strokeWidth={1.5} color="#fff"/></div>
                     </div>
                   ))}
                 </div>
@@ -284,7 +282,7 @@ const ViewProfilePage = () => {
             {!isProvider && (!profile.gallery_urls || profile.gallery_urls.length === 0) && (
               <div className="vp-card">
                 <div className="empty-state" style={{ minHeight: 120 }}>
-                  <div className="empty-icon">👤</div>
+                  <div className="empty-icon" style={{display:'flex',justifyContent:'center',opacity:0.4}}><User size={40} strokeWidth={1.5}/></div>
                   <p>This user hasn't added any public content yet.</p>
                 </div>
               </div>
@@ -296,7 +294,7 @@ const ViewProfilePage = () => {
       {/* ── Lightbox ─────────────────────────────────────────────────── */}
       {lightbox && (
         <div className="vp-lightbox" onClick={() => setLightbox(null)}>
-          <button className="vp-lightbox-close" onClick={() => setLightbox(null)}>✕</button>
+          <button className="vp-lightbox-close" onClick={() => setLightbox(null)}><X size={18} strokeWidth={2.5}/></button>
           <img
             src={lightbox}
             alt="Gallery photo"
@@ -424,7 +422,7 @@ const ViewProfilePage = () => {
         /* ── Info List ──────────────────────────────────────────── */
         .vp-info-list { display: flex; flex-direction: column; gap: var(--space-3); }
         .vp-info-row { display: flex; align-items: center; gap: var(--space-3); font-size: .875rem; color: var(--text-secondary); }
-        .vp-info-icon { font-size: 1rem; flex-shrink: 0; }
+        .vp-info-icon { display:flex; align-items:center; flex-shrink:0; color:var(--primary-dark); }
         .vp-empty-text { font-size: .82rem; color: var(--text-muted); font-style: italic; }
 
         /* ── Section Title ───────────────────────────────────────── */
@@ -513,7 +511,6 @@ const ViewProfilePage = () => {
           position: absolute; inset: 0;
           background: rgba(14,165,233,.3);
           display: flex; align-items: center; justify-content: center;
-          font-size: 1.5rem;
           opacity: 0;
           transition: opacity .2s;
         }
