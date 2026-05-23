@@ -1,10 +1,10 @@
-# 🛠️ ServiceHub — Local Services Marketplace
+#  ServiceHub — Local Services Marketplace
 
 ServiceHub is a full-stack web marketplace that connects **customers** with local **service providers**. Customers can discover, book, and review services; providers manage their listings, schedules, and earnings; and administrators oversee the entire platform through a dedicated dashboard.
 
 ---
 
-## 📋 Table of Contents
+##  Table of Contents
 
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
@@ -18,20 +18,20 @@ ServiceHub is a full-stack web marketplace that connects **customers** with loca
 
 ---
 
-## ✨ Features
+##  Features
 
-### 👤 Authentication & Users
+###  Authentication & Users
 - JWT-based login / registration with role selection (`customer`, `provider`)
 - Password reset via email (Nodemailer token flow)
 - Profile management with avatar upload (Multer)
 - Account types: `freelancer` or `business`
 
-### 🔍 Service Discovery
+###  Service Discovery
 - Browse and search all listed services with category filters
 - Autocomplete search bar with live suggestions
-- Service detail page with photos, description, pricing, and ratings
+- Service detail page with photos, description, pricing, review and ratings
 
-### 📅 Booking System
+###  Booking System
 - Customers book services by selecting available time slots
 - Providers define weekly schedules and block specific dates
 - Capacity management — multiple teams can run parallel bookings
@@ -45,23 +45,23 @@ ServiceHub is a full-stack web marketplace that connects **customers** with loca
 - Unread message count badges
 - Persisted message history in PostgreSQL
 
-### 🔔 In-App Notifications
+###  In-App Notifications
 - Real-time push notifications for booking events (confirmed, cancelled, completed)
 - Notification bell with unread count in the Navbar
 - Mark individual or all notifications as read
 
-### ⭐ Reviews & Ratings
+###  Reviews & Ratings
 - Customers leave star ratings + text reviews after a completed booking
 - Admin can flag/unflag inappropriate reviews
 - Average rating displayed on every service card
 
-### 🛡️ Admin Dashboard
+###  Admin Dashboard
 - Platform-wide statistics (users, bookings, revenue)
 - Manage all users (activate / deactivate)
 - View and manage all bookings and services
 - Flag reviews for policy violations
 
-### 📆 Provider Tools
+### Provider Tools
 - Provider dashboard with booking inbox and earnings overview
 - Schedule management — set working hours per day of week
 - Block holidays and leave dates
@@ -70,7 +70,7 @@ ServiceHub is a full-stack web marketplace that connects **customers** with loca
 
 ---
 
-## 🧰 Tech Stack
+## Tech Stack
 
 ### Backend
 | Technology | Role |
@@ -99,7 +99,7 @@ ServiceHub is a full-stack web marketplace that connects **customers** with loca
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 service-hub-projects/
@@ -177,7 +177,7 @@ service-hub-projects/
 
 ---
 
-## 🗄️ Database Schema
+##  Database Schema
 
 The PostgreSQL database contains the following core tables:
 
@@ -225,7 +225,7 @@ The PostgreSQL database contains the following core tables:
 
 ---
 
-## 🗺️ API Routes
+## API Routes
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -257,7 +257,7 @@ The PostgreSQL database contains the following core tables:
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 - **Node.js** v18+
@@ -305,7 +305,7 @@ npm run dev
 
 ---
 
-## 🔐 Environment Variables
+##  Environment Variables
 
 Create `backend/.env` with the following:
 
@@ -327,7 +327,7 @@ EMAIL_PASS=your_app_password
 
 ---
 
-## 👑 Default Admin Account
+##  Default Admin Account
 
 After running `node setup-db.js`, an admin account is seeded automatically:
 
@@ -336,7 +336,7 @@ After running `node setup-db.js`, an admin account is seeded automatically:
 | **Email** | `admin@servicehub.com` |
 | **Password** | `admin123` |
 
-> ⚠️ Change this password immediately after first login in a production environment.
+>  Change this password immediately after first login in a production environment.
 
 To reset the admin credentials at any time:
 ```bash
